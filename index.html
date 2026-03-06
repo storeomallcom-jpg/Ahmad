@@ -1,59 +1,23 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>ProfitPilot AI — Smart Pricing for Global Commerce</title>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
+  <title>ProfitPilot AI v2 — Dynamic Range Engine</title>
 
-  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
-
-  <!-- Lucide Icons -->
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
-
-  <!-- Supabase JS SDK v2 -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-  <!-- Google Fonts: DM Sans + Syne -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
 
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            display: ['Syne', 'sans-serif'],
-            body: ['DM Sans', 'sans-serif'],
-          },
-          colors: {
-            slate: {
-              950: '#020617',
-              900: '#0f172a',
-              800: '#1e293b',
-              700: '#334155',
-              600: '#475569',
-              400: '#94a3b8',
-              300: '#cbd5e1',
-              200: '#e2e8f0',
-              100: '#f1f5f9',
-            },
-            electric: {
-              600: '#2563eb',
-              500: '#3b82f6',
-              400: '#60a5fa',
-              300: '#93c5fd',
-              glow: '#1d4ed8',
-            },
-            emerald: {
-              500: '#10b981',
-              400: '#34d399',
-            },
-            rose: {
-              500: '#f43f5e',
-              400: '#fb7185',
-            }
+            display: ['Outfit', 'sans-serif'],
+            body: ['Space Grotesk', 'sans-serif'],
           }
         }
       }
@@ -61,729 +25,1085 @@
   </script>
 
   <style>
-    * { box-sizing: border-box; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: #020617;
-      color: #e2e8f0;
-      min-height: 100vh;
+    :root {
+      --navy:      #050b18;
+      --navy-2:    #070e1f;
+      --navy-3:    #0a1428;
+      --card:      rgba(10, 20, 45, 0.7);
+      --border:    rgba(56, 139, 253, 0.12);
+      --border-hi: rgba(56, 139, 253, 0.35);
+      --blue:      #2f88ff;
+      --blue-dim:  #1a5fcc;
+      --blue-glow: rgba(47, 136, 255, 0.35);
+      --emerald:   #00e5a0;
+      --emerald-d: #00b07a;
+      --emerald-glow: rgba(0, 229, 160, 0.25);
+      --amber:     #ffb300;
+      --amber-glow: rgba(255, 179, 0, 0.25);
+      --rose:      #ff4d6d;
+      --text-1:    #e8edf5;
+      --text-2:    #7a90b8;
+      --text-3:    #3d5070;
     }
 
-    /* ── Animated mesh background ── */
-    .mesh-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 0;
-      overflow: hidden;
-      pointer-events: none;
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'Space Grotesk', sans-serif;
+      background: var(--navy);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    .mesh-bg::before {
-      content: '';
-      position: absolute;
-      width: 700px; height: 700px;
-      background: radial-gradient(circle, rgba(37,99,235,0.18) 0%, transparent 70%);
-      top: -200px; left: -200px;
-      animation: drift1 18s ease-in-out infinite alternate;
+
+    /* ── Animated starfield ── */
+    .starfield {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(47,136,255,0.13) 0%, transparent 60%),
+        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(0,229,160,0.08) 0%, transparent 60%),
+        var(--navy);
     }
-    .mesh-bg::after {
+    .starfield::before {
       content: '';
-      position: absolute;
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4) 0%, transparent 100%),
+        radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 70% 35%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 88% 15%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
+        radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 5% 55%, rgba(255,255,255,0.2) 0%, transparent 100%),
+        radial-gradient(1px 1px at 95% 65%, rgba(255,255,255,0.25) 0%, transparent 100%);
+    }
+    /* moving glow blob */
+    .glow-blob {
+      position: fixed; pointer-events: none; z-index: 0;
+      border-radius: 50%;
+      filter: blur(80px);
+      animation: blobFloat 20s ease-in-out infinite;
+    }
+    .glow-blob-1 {
       width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(99,102,241,0.12) 0%, transparent 70%);
-      bottom: -100px; right: -100px;
-      animation: drift2 22s ease-in-out infinite alternate;
+      background: radial-gradient(circle, rgba(47,136,255,0.12) 0%, transparent 70%);
+      top: -150px; left: -150px;
     }
-    @keyframes drift1 { from { transform: translate(0,0); } to { transform: translate(80px, 60px); } }
-    @keyframes drift2 { from { transform: translate(0,0); } to { transform: translate(-60px, -80px); } }
+    .glow-blob-2 {
+      width: 400px; height: 400px;
+      background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%);
+      bottom: -100px; right: -100px;
+      animation-delay: -10s;
+    }
+    @keyframes blobFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(40px, 30px) scale(1.05); }
+      66%      { transform: translate(-30px, 20px) scale(0.95); }
+    }
 
     /* ── Glass card ── */
     .glass {
-      background: rgba(30, 41, 59, 0.55);
-      backdrop-filter: blur(20px);
-      -webkit-backdrop-filter: blur(20px);
-      border: 1px solid rgba(148, 163, 184, 0.08);
+      background: var(--card);
+      backdrop-filter: blur(24px) saturate(180%);
+      -webkit-backdrop-filter: blur(24px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
     }
+    .glass-hi { border-color: var(--border-hi); }
 
-    /* ── Electric button ── */
-    .btn-electric {
-      background: linear-gradient(135deg, #2563eb, #3b82f6);
-      box-shadow: 0 0 24px rgba(37,99,235,0.4);
-      transition: all 0.2s ease;
+    /* ── Neon input ── */
+    .neon-input {
+      background: rgba(5, 11, 28, 0.8);
+      border: 1.5px solid rgba(56,139,253,0.15);
+      border-radius: 14px;
+      color: var(--text-1);
+      padding: 0.875rem 1rem 0.875rem 2.75rem;
+      font-size: 1rem;
+      font-family: 'Space Grotesk', sans-serif;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 52px;
     }
-    .btn-electric:hover {
-      box-shadow: 0 0 36px rgba(37,99,235,0.65);
+    .neon-input:focus {
+      border-color: rgba(47,136,255,0.55);
+      box-shadow: 0 0 0 3px rgba(47,136,255,0.10), 0 0 20px rgba(47,136,255,0.08);
+    }
+    .neon-input::placeholder { color: var(--text-3); }
+    .neon-input-plain {
+      background: rgba(5,11,28,0.8);
+      border: 1.5px solid rgba(56,139,253,0.15);
+      border-radius: 14px;
+      color: var(--text-1);
+      padding: 0.875rem 1rem;
+      font-size: 1rem;
+      font-family: 'Space Grotesk', sans-serif;
+      width: 100%;
+      outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 52px;
+    }
+    .neon-input-plain:focus {
+      border-color: rgba(47,136,255,0.55);
+      box-shadow: 0 0 0 3px rgba(47,136,255,0.10);
+    }
+    .neon-input-plain option { background: #0a1428; }
+
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #1a5fcc 0%, #2f88ff 60%, #38a3ff 100%);
+      box-shadow: 0 4px 24px var(--blue-glow), inset 0 1px 0 rgba(255,255,255,0.15);
+      border-radius: 14px;
+      color: #fff;
+      font-family: 'Outfit', sans-serif;
+      font-weight: 600;
+      font-size: 1rem;
+      min-height: 52px;
+      padding: 0 1.5rem;
+      width: 100%;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
+      border: none;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 6px 36px rgba(47,136,255,0.55), inset 0 1px 0 rgba(255,255,255,0.15);
       transform: translateY(-1px);
     }
-    .btn-electric:active { transform: translateY(0); }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 12px var(--blue-glow); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
 
-    /* ── Input style ── */
-    .field {
-      background: rgba(15,23,42,0.7);
-      border: 1px solid rgba(148,163,184,0.12);
-      border-radius: 10px;
-      color: #e2e8f0;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      width: 100%;
-      padding: 0.65rem 1rem;
-      font-size: 0.95rem;
-      outline: none;
-    }
-    .field:focus {
-      border-color: rgba(59,130,246,0.6);
-      box-shadow: 0 0 0 3px rgba(59,130,246,0.12);
-    }
-    .field::placeholder { color: #475569; }
-
-    /* ── Stat card ── */
-    .stat-card {
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
       border-radius: 14px;
-      padding: 1.25rem 1.5rem;
-      border: 1px solid rgba(148,163,184,0.08);
+      color: var(--text-2);
+      font-family: 'Space Grotesk', sans-serif;
+      font-weight: 500;
+      font-size: 0.9rem;
+      min-height: 48px;
+      padding: 0 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text-1); background: rgba(47,136,255,0.06); }
+
+    /* ── Price range cards ── */
+    .range-card {
+      border-radius: 18px;
+      padding: 1.1rem 1.25rem;
+      border: 1px solid;
+      transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+    }
+    .range-card:hover { transform: translateY(-3px); }
+    .range-card.floor {
+      background: linear-gradient(135deg, rgba(255,77,109,0.12), rgba(255,77,109,0.04));
+      border-color: rgba(255,77,109,0.25);
+    }
+    .range-card.recommended {
+      background: linear-gradient(135deg, rgba(47,136,255,0.18), rgba(47,136,255,0.06));
+      border-color: rgba(47,136,255,0.4);
+      box-shadow: 0 4px 30px rgba(47,136,255,0.15);
+    }
+    .range-card.premium {
+      background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,229,160,0.04));
+      border-color: rgba(0,229,160,0.3);
     }
 
-    /* ── Section transitions ── */
+    /* pop animation */
+    @keyframes cardPop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.04); }
+      70%  { transform: scale(0.98); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: cardPop 0.35s cubic-bezier(.34,1.56,.64,1); }
+
+    /* ── Range slider ── */
+    .profit-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      height: 8px;
+      border-radius: 999px;
+      outline: none;
+      cursor: pointer;
+      width: 100%;
+      background: linear-gradient(to right, var(--blue) var(--pct, 50%), rgba(56,139,253,0.15) var(--pct, 50%));
+      transition: background 0.1s;
+    }
+    .profit-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2f88ff, #38a3ff);
+      box-shadow: 0 0 0 4px rgba(47,136,255,0.25), 0 4px 12px rgba(47,136,255,0.4);
+      cursor: grab;
+      transition: box-shadow 0.2s, transform 0.2s;
+    }
+    .profit-slider::-webkit-slider-thumb:active {
+      cursor: grabbing;
+      transform: scale(1.15);
+      box-shadow: 0 0 0 8px rgba(47,136,255,0.2), 0 4px 16px rgba(47,136,255,0.5);
+    }
+    .profit-slider::-moz-range-thumb {
+      width: 28px; height: 28px;
+      border: none;
+      border-radius: 50%;
+      background: linear-gradient(135deg, #2f88ff, #38a3ff);
+      box-shadow: 0 0 0 4px rgba(47,136,255,0.25);
+      cursor: grab;
+    }
+
+    /* ── Profitability zones on slider track ── */
+    .slider-zones {
+      position: relative;
+      height: 6px;
+      border-radius: 999px;
+      overflow: hidden;
+      background: linear-gradient(to right,
+        rgba(255,77,109,0.5) 0%,
+        rgba(255,179,0,0.5) 33%,
+        rgba(47,136,255,0.7) 60%,
+        rgba(0,229,160,0.7) 100%
+      );
+    }
+
+    /* ── Nav tabs ── */
+    .nav-tab {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.65rem 1rem;
+      border-radius: 12px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      color: var(--text-2);
+      cursor: pointer;
+      transition: all 0.2s;
+      border: 1px solid transparent;
+      min-height: 44px;
+    }
+    .nav-tab.active {
+      background: rgba(47,136,255,0.15);
+      color: #93c5fd;
+      border-color: rgba(47,136,255,0.3);
+    }
+    .nav-tab:hover:not(.active) { background: rgba(255,255,255,0.04); color: var(--text-1); }
+
+    /* ── Auth tabs ── */
+    .auth-tab { flex: 1; padding: 0.65rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text-2); }
+    .auth-tab.active { background: rgba(47,136,255,0.2); color: #93c5fd; }
+
+    /* ── Section visibility ── */
     .section { display: none; }
     .section.active { display: block; }
 
-    /* ── Tab active state ── */
-    .tab-btn.active-tab {
-      background: rgba(37,99,235,0.2);
-      color: #60a5fa;
-      border-color: rgba(59,130,246,0.4);
-    }
-
     /* ── Toast ── */
     #toast {
-      position: fixed;
-      bottom: 1.5rem; right: 1.5rem;
-      z-index: 9999;
-      padding: 0.75rem 1.25rem;
-      border-radius: 10px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      transform: translateY(100px);
-      opacity: 0;
-      transition: all 0.3s ease;
+      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(100px);
+      z-index: 9999; padding: 0.75rem 1.5rem; border-radius: 12px;
+      font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+      opacity: 0; pointer-events: none;
     }
-    #toast.show { transform: translateY(0); opacity: 1; }
-    #toast.success { background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; }
-    #toast.error   { background: rgba(244,63,94,0.2);  border: 1px solid rgba(244,63,94,0.4);  color: #fb7185; }
-    #toast.info    { background: rgba(37,99,235,0.2);  border: 1px solid rgba(59,130,246,0.4); color: #93c5fd; }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.success { background: rgba(0,229,160,0.2); border: 1px solid rgba(0,229,160,0.4); color: #00e5a0; }
+    #toast.error   { background: rgba(255,77,109,0.2); border: 1px solid rgba(255,77,109,0.4); color: #ff8fa3; }
+    #toast.info    { background: rgba(47,136,255,0.2); border: 1px solid rgba(47,136,255,0.4); color: #93c5fd; }
 
-    /* ── Loader ── */
-    .spinner {
-      border: 2px solid rgba(255,255,255,0.1);
-      border-top-color: #60a5fa;
-      border-radius: 50%;
-      width: 18px; height: 18px;
-      animation: spin 0.7s linear infinite;
-      display: inline-block;
-    }
-    @keyframes spin { to { transform: rotate(360deg); } }
+    /* ── Spinner ── */
+    .spin { animation: spin360 0.7s linear infinite; }
+    @keyframes spin360 { to { transform: rotate(360deg); } }
 
-    /* ── Result number pulse ── */
-    @keyframes numPop {
-      0%   { transform: scale(1); }
-      50%  { transform: scale(1.06); }
-      100% { transform: scale(1); }
-    }
-    .num-pop { animation: numPop 0.3s ease; }
+    /* ── Label ── */
+    .field-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 0.5rem; display: block; }
 
-    /* ── YouTube CTA ── */
+    /* ── Badge ── */
+    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
+
+    /* ── Gradient text ── */
+    .text-gradient-blue { background: linear-gradient(135deg, #60a5fa, #2f88ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .text-gradient-green { background: linear-gradient(135deg, #00e5a0, #34d399); -webkit-background-clip: text; background-clip: text; color: transparent; }
+
+    /* ── Chart container ── */
+    .chart-wrap { position: relative; height: 200px; }
+
+    /* ── YT CTA ── */
     .yt-cta {
-      background: linear-gradient(135deg, rgba(220,38,38,0.15), rgba(239,68,68,0.08));
-      border: 1px solid rgba(220,38,38,0.25);
+      background: linear-gradient(135deg, rgba(185,28,28,0.15), rgba(239,68,68,0.06));
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 16px;
+      transition: border-color 0.2s, background 0.2s;
     }
-    .yt-cta:hover { border-color: rgba(220,38,38,0.5); }
+    .yt-cta:hover { border-color: rgba(239,68,68,0.45); background: linear-gradient(135deg, rgba(185,28,28,0.22), rgba(239,68,68,0.1)); }
 
-    /* Mobile padding */
-    @media (max-width: 640px) {
-      .app-padding { padding: 1rem; }
+    /* Formula pill */
+    .formula-pill {
+      background: rgba(5,11,28,0.8);
+      border: 1px solid rgba(47,136,255,0.18);
+      border-radius: 12px;
+      padding: 0.75rem 1rem;
+      font-size: 0.78rem;
+      color: var(--text-2);
+      line-height: 1.6;
     }
+
+    /* Staggered entry animation */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up { animation: fadeUp 0.45s ease both; }
+    .fade-up-1 { animation-delay: 0.05s; }
+    .fade-up-2 { animation-delay: 0.12s; }
+    .fade-up-3 { animation-delay: 0.19s; }
+    .fade-up-4 { animation-delay: 0.26s; }
+    .fade-up-5 { animation-delay: 0.33s; }
+
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(47,136,255,0.2); border-radius: 4px; }
+
+    /* ── Safe area for notch phones ── */
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
   </style>
 </head>
-<body class="font-body">
+<body>
 
-  <!-- Animated mesh background -->
-  <div class="mesh-bg"></div>
+<!-- Background layers -->
+<div class="starfield"></div>
+<div class="glow-blob glow-blob-1"></div>
+<div class="glow-blob glow-blob-2"></div>
 
-  <!-- ─────────────────────────────────────────────────
-       TOAST NOTIFICATION
-  ───────────────────────────────────────────────── -->
-  <div id="toast"></div>
+<!-- Toast -->
+<div id="toast"></div>
 
-  <!-- ─────────────────────────────────────────────────
-       AUTH SCREEN
-  ───────────────────────────────────────────────── -->
-  <div id="auth-screen" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-12">
-    <div class="w-full max-w-sm">
+<!-- ═══════════════════════════════════════════
+     AUTH SCREEN
+═══════════════════════════════════════════ -->
+<div id="auth-screen" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
+  <div class="w-full max-w-sm fade-up">
 
-      <!-- Logo -->
-      <div class="text-center mb-8">
-        <div class="inline-flex items-center gap-2 mb-3">
-          <div class="w-9 h-9 rounded-xl btn-electric flex items-center justify-center">
-            <i data-lucide="trending-up" class="w-5 h-5 text-white"></i>
-          </div>
-          <span class="font-display text-2xl text-white tracking-tight">ProfitPilot <span class="text-electric-400">AI</span></span>
-        </div>
-        <p class="text-slate-400 text-sm">International e-commerce pricing intelligence</p>
+    <!-- Logo -->
+    <div class="text-center mb-8">
+      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
+        style="background: linear-gradient(135deg,#1a5fcc,#2f88ff); box-shadow: 0 8px 32px rgba(47,136,255,0.4)">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+        </svg>
+      </div>
+      <h1 class="font-display font-bold text-3xl text-white tracking-tight">ProfitPilot <span class="text-gradient-blue">AI</span></h1>
+      <p class="text-sm mt-1" style="color:var(--text-2)">Dynamic Range Engine v2</p>
+    </div>
+
+    <!-- Card -->
+    <div class="glass glass-hi p-6">
+      <!-- Tabs -->
+      <div class="flex bg-black/30 rounded-xl p-1 mb-5 gap-1">
+        <button id="atab-login"  onclick="switchAuthTab('login')"  class="auth-tab active">Sign In</button>
+        <button id="atab-signup" onclick="switchAuthTab('signup')" class="auth-tab">Sign Up</button>
       </div>
 
-      <!-- Auth Card -->
-      <div class="glass rounded-2xl p-7">
-        <!-- Toggle -->
-        <div class="flex bg-slate-950 rounded-xl p-1 mb-6">
-          <button id="tab-login" onclick="switchAuthTab('login')"
-            class="tab-btn active-tab flex-1 py-2 rounded-lg text-sm font-medium transition-all border border-transparent">
-            Sign In
-          </button>
-          <button id="tab-signup" onclick="switchAuthTab('signup')"
-            class="tab-btn flex-1 py-2 rounded-lg text-sm font-medium transition-all border border-transparent text-slate-400">
-            Sign Up
-          </button>
+      <div class="space-y-4">
+        <div>
+          <label class="field-label">Email Address</label>
+          <input id="a-email" type="email" placeholder="you@example.com" class="neon-input-plain"/>
         </div>
-
-        <!-- Email -->
-        <div class="mb-4">
-          <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Email</label>
-          <input id="auth-email" type="email" placeholder="you@example.com" class="field" />
+        <div>
+          <label class="field-label">Password</label>
+          <input id="a-pass" type="password" placeholder="••••••••••" class="neon-input-plain"/>
         </div>
+      </div>
 
-        <!-- Password -->
-        <div class="mb-6">
-          <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Password</label>
-          <input id="auth-password" type="password" placeholder="••••••••" class="field" />
+      <button id="a-btn" onclick="handleAuth()" class="btn-primary mt-5 flex items-center justify-center gap-2">
+        <svg id="a-spin" class="hidden spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+        <span id="a-btn-text">Sign In</span>
+      </button>
+
+      <p class="text-center text-xs mt-4" style="color:var(--text-3)">Secured by Supabase Auth</p>
+    </div>
+
+    <!-- YouTube CTA -->
+    <a href="https://www.youtube.com" target="_blank" class="yt-cta mt-4 flex items-center gap-3 p-4 cursor-pointer group">
+      <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+      </div>
+      <div class="flex-1 min-w-0">
+        <p class="text-sm font-semibold text-white">Subscribe for AI Strategy Insights</p>
+        <p class="text-xs truncate" style="color:var(--text-3)">Pricing, Growth & Global E-commerce</p>
+      </div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-red-500 opacity-60 group-hover:opacity-100 transition-opacity"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+    </a>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════
+     APP SCREEN
+═══════════════════════════════════════════ -->
+<div id="app-screen" class="hidden relative z-10 flex flex-col min-h-screen">
+
+  <!-- Sticky Nav -->
+  <header class="sticky top-0 z-50" style="background: rgba(5,11,28,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);">
+    <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
+      <div class="flex items-center gap-2.5">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg,#1a5fcc,#2f88ff); box-shadow: 0 4px 12px rgba(47,136,255,0.35)">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         </div>
-
-        <!-- Submit -->
-        <button id="auth-btn" onclick="handleAuth()"
-          class="btn-electric w-full py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2">
-          <span id="auth-btn-text">Sign In</span>
-          <span id="auth-spinner" class="hidden"><span class="spinner"></span></span>
+        <span class="font-display font-bold text-lg text-white tracking-tight">ProfitPilot <span class="text-gradient-blue">AI</span></span>
+        <span class="badge" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3); color:#60a5fa;">v2</span>
+      </div>
+      <div class="flex items-center gap-2">
+        <span id="nav-email" class="text-xs hidden sm:block" style="color:var(--text-3)"></span>
+        <button onclick="signOut()" class="btn-ghost flex items-center gap-1.5 text-xs px-3 py-2 min-h-0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Out
         </button>
+      </div>
+    </div>
+  </header>
 
-        <p class="text-center text-xs text-slate-600 mt-5">
-          By continuing, you agree to our Terms of Service
-        </p>
+  <!-- Bottom navigation (mobile-first) -->
+  <div class="sticky top-14 z-40" style="background: rgba(5,11,28,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);">
+    <div class="max-w-xl mx-auto px-3 py-2 flex gap-1">
+      <button onclick="showSection('calculator')" id="ntab-calculator" class="nav-tab active flex-1 justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
+        Calculator
+      </button>
+      <button onclick="showSection('settings')" id="ntab-settings" class="nav-tab flex-1 justify-center">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        Settings
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Main content ── -->
+  <main class="max-w-xl mx-auto w-full px-4 py-5 flex-1 safe-bottom" style="padding-bottom: 2rem;">
+
+    <!-- ════════════ CALCULATOR SECTION ════════════ -->
+    <div id="section-calculator" class="section active space-y-4">
+
+      <!-- Input card -->
+      <div class="glass p-5 fade-up fade-up-1">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+          </div>
+          <h2 class="font-display font-semibold text-base text-white">Product Inputs</h2>
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div>
+            <label class="field-label">Product Cost</label>
+            <div class="relative">
+              <span id="sym-cost" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
+              <input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Ads / Marketing</label>
+            <div class="relative">
+              <span id="sym-ads" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
+              <input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <!-- YouTube CTA (auth screen) -->
+      <!-- Defaults override card -->
+      <div class="glass p-5 fade-up fade-up-2">
+        <div class="flex items-center justify-between mb-4">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            </div>
+            <h2 class="font-display font-semibold text-base text-white">Global Defaults</h2>
+          </div>
+          <span class="badge" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25); color:#00e5a0;">Auto-loaded</span>
+        </div>
+        <div class="grid grid-cols-3 gap-3">
+          <div>
+            <label class="field-label">Tax %</label>
+            <input id="inp-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-input-plain text-center" oninput="calculate()"/>
+          </div>
+          <div>
+            <label class="field-label">Shipping</label>
+            <div class="relative">
+              <span id="sym-ship" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
+              <input id="inp-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-input" style="padding-left:1.75rem" oninput="calculate()"/>
+            </div>
+          </div>
+          <div>
+            <label class="field-label">Margin %</label>
+            <input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-input-plain text-center" oninput="calculate()"/>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Strategic Price Range ── -->
+      <div class="glass glass-hi p-5 fade-up fade-up-3">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <h2 class="font-display font-semibold text-base text-white">Strategic Price Range</h2>
+        </div>
+
+        <!-- 3 Range cards -->
+        <div class="grid grid-cols-3 gap-2.5 mb-4" id="range-cards">
+          <div class="range-card floor text-center" id="card-floor">
+            <div class="flex items-center justify-center gap-1 mb-1">
+              <div class="w-2 h-2 rounded-full" style="background:var(--rose)"></div>
+              <span class="text-xs font-semibold uppercase tracking-wider" style="color:var(--rose)">Floor</span>
+            </div>
+            <p id="val-floor" class="font-display font-bold text-xl text-white mt-0.5">—</p>
+            <p class="text-xs mt-1" style="color:var(--text-3)">Break-even</p>
+          </div>
+          <div class="range-card recommended text-center" id="card-rec">
+            <div class="flex items-center justify-center gap-1 mb-1">
+              <div class="w-2 h-2 rounded-full" style="background:var(--blue)"></div>
+              <span class="text-xs font-semibold uppercase tracking-wider" style="color:#60a5fa">Target</span>
+            </div>
+            <p id="val-rec" class="font-display font-bold text-xl text-white mt-0.5">—</p>
+            <p class="text-xs mt-1" style="color:var(--text-3)">Recommended</p>
+          </div>
+          <div class="range-card premium text-center" id="card-prem">
+            <div class="flex items-center justify-center gap-1 mb-1">
+              <div class="w-2 h-2 rounded-full" style="background:var(--emerald)"></div>
+              <span class="text-xs font-semibold uppercase tracking-wider" style="color:var(--emerald)">Premium</span>
+            </div>
+            <p id="val-prem" class="font-display font-bold text-xl text-white mt-0.5">—</p>
+            <p class="text-xs mt-1" style="color:var(--text-3)">+15% Buffer</p>
+          </div>
+        </div>
+
+        <!-- Formula pills -->
+        <div class="formula-pill">
+          <span style="color:#60a5fa; font-weight:600;">Floor</span> = (Cost+Ads+Ship) ÷ (1−Tax) &nbsp;|&nbsp;
+          <span style="color:#60a5fa; font-weight:600;">Target</span> = Total ÷ (1−Tax−Margin) &nbsp;|&nbsp;
+          <span style="color:#00e5a0; font-weight:600;">Premium</span> = Target × 1.15
+        </div>
+      </div>
+
+      <!-- ── Interactive Price Slider ── -->
+      <div class="glass p-5 fade-up fade-up-4" id="slider-section">
+        <div class="flex items-center justify-between mb-3">
+          <div class="flex items-center gap-2">
+            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(255,179,0,0.1); border:1px solid rgba(255,179,0,0.25)">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffb300" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+            </div>
+            <h2 class="font-display font-semibold text-base text-white">Price Explorer</h2>
+          </div>
+          <div class="text-right">
+            <p class="text-xs" style="color:var(--text-2)">Testing price</p>
+            <p id="slider-price-display" class="font-display font-bold text-base text-white">—</p>
+          </div>
+        </div>
+
+        <!-- Zone bar -->
+        <div class="slider-zones mb-3 rounded-full"></div>
+
+        <!-- Slider -->
+        <input id="price-slider" type="range" min="0" max="1000" step="0.01"
+          class="profit-slider mb-3 block"
+          oninput="onSliderChange(this.value)"
+          style="--pct:50%"/>
+
+        <!-- Range labels -->
+        <div class="flex justify-between text-xs mb-4" style="color:var(--text-3)">
+          <span id="slider-min-label">Floor</span>
+          <span id="slider-rec-label">Target</span>
+          <span id="slider-max-label">Premium</span>
+        </div>
+
+        <!-- Live profit from slider -->
+        <div class="grid grid-cols-2 gap-3">
+          <div class="rounded-xl p-3.5 text-center" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
+            <p class="text-xs mb-1" style="color:var(--text-2)">Net Profit</p>
+            <p id="slider-profit" class="font-display font-bold text-lg text-white">—</p>
+          </div>
+          <div class="rounded-xl p-3.5 text-center" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
+            <p class="text-xs mb-1" style="color:var(--text-2)">Margin Achieved</p>
+            <p id="slider-margin-pct" class="font-display font-bold text-lg text-white">—</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Profitability Curve Chart ── -->
+      <div class="glass p-5 fade-up fade-up-5">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <h2 class="font-display font-semibold text-base text-white">Profitability Curve</h2>
+        </div>
+        <div class="chart-wrap">
+          <canvas id="profit-chart"></canvas>
+        </div>
+        <div class="flex items-center gap-4 mt-3 text-xs" style="color:var(--text-2)">
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 rounded" style="background:#2f88ff"></span>Net Profit</span>
+          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 rounded" style="background:rgba(255,77,109,0.6); border-top: 1px dashed #ff4d6d;"></span>Break-even</span>
+        </div>
+      </div>
+
+      <!-- YouTube CTA -->
       <a href="https://www.youtube.com" target="_blank"
-        class="yt-cta mt-4 flex items-center gap-3 rounded-xl p-3.5 transition-all cursor-pointer group">
-        <div class="w-8 h-8 bg-red-600 rounded-lg flex items-center justify-center flex-shrink-0">
-          <i data-lucide="youtube" class="w-4 h-4 text-white"></i>
+        class="yt-cta flex items-center gap-3 p-4 cursor-pointer group fade-up">
+        <div class="w-11 h-11 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
         </div>
         <div class="flex-1 min-w-0">
-          <p class="text-xs font-semibold text-white">Subscribe for AI Strategy Insights</p>
-          <p class="text-xs text-slate-500 truncate">YouTube · Pricing, Growth & E-commerce</p>
+          <p class="text-sm font-semibold text-white">Subscribe for AI Strategy Insights</p>
+          <p class="text-xs mt-0.5 truncate" style="color:var(--text-3)">Pricing psychology, global growth & e-commerce AI</p>
         </div>
-        <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-red-400 transition-colors flex-shrink-0"></i>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-red-400 opacity-70 group-hover:opacity-100 transition-opacity"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
       </a>
     </div>
-  </div>
 
-  <!-- ─────────────────────────────────────────────────
-       APP SCREEN (logged in)
-  ───────────────────────────────────────────────── -->
-  <div id="app-screen" class="hidden relative z-10 min-h-screen flex flex-col">
+    <!-- ════════════ SETTINGS SECTION ════════════ -->
+    <div id="section-settings" class="section space-y-4">
 
-    <!-- Top nav -->
-    <nav class="glass border-b border-slate-800/60 sticky top-0 z-50">
-      <div class="max-w-2xl mx-auto px-4 h-14 flex items-center justify-between">
-        <div class="flex items-center gap-2">
-          <div class="w-7 h-7 rounded-lg btn-electric flex items-center justify-center">
-            <i data-lucide="trending-up" class="w-3.5 h-3.5 text-white"></i>
+      <div class="glass p-5 fade-up fade-up-1">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
-          <span class="font-display text-lg text-white tracking-tight">ProfitPilot <span class="text-electric-400">AI</span></span>
+          <h2 class="font-display font-semibold text-base text-white">Global Defaults</h2>
         </div>
-        <div class="flex items-center gap-2">
-          <span id="nav-email" class="text-xs text-slate-500 hidden sm:block"></span>
-          <button onclick="signOut()"
-            class="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-300 transition-colors px-2.5 py-1.5 rounded-lg hover:bg-slate-800">
-            <i data-lucide="log-out" class="w-3.5 h-3.5"></i>
-            <span>Sign Out</span>
-          </button>
-        </div>
-      </div>
-    </nav>
+        <p class="text-xs mb-5" style="color:var(--text-2)">Saved to your profile and auto-loaded every session.</p>
 
-    <!-- Tab bar -->
-    <div class="border-b border-slate-800/60">
-      <div class="max-w-2xl mx-auto px-4">
-        <div class="flex gap-1 pt-3 pb-0">
-          <button onclick="showSection('calculator')"
-            id="nav-calculator"
-            class="tab-btn active-tab flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border border-b-0 border-transparent transition-all">
-            <i data-lucide="calculator" class="w-4 h-4"></i>
-            <span>Calculator</span>
-          </button>
-          <button onclick="showSection('settings')"
-            id="nav-settings"
-            class="tab-btn flex items-center gap-2 px-4 py-2.5 rounded-t-lg text-sm font-medium border border-b-0 border-transparent text-slate-400 transition-all">
-            <i data-lucide="settings" class="w-4 h-4"></i>
-            <span>Settings</span>
-          </button>
+        <div class="space-y-4">
+          <div>
+            <label class="field-label">Currency</label>
+            <select id="set-currency" class="neon-input-plain">
+              <option value="USD">USD — US Dollar ($)</option>
+              <option value="EUR">EUR — Euro (€)</option>
+              <option value="GBP">GBP — British Pound (£)</option>
+              <option value="JPY">JPY — Japanese Yen (¥)</option>
+              <option value="AUD">AUD — Australian Dollar (A$)</option>
+              <option value="CAD">CAD — Canadian Dollar (C$)</option>
+              <option value="CHF">CHF — Swiss Franc (Fr)</option>
+              <option value="CNY">CNY — Chinese Yuan (¥)</option>
+              <option value="BRL">BRL — Brazilian Real (R$)</option>
+              <option value="MXN">MXN — Mexican Peso ($)</option>
+            </select>
+          </div>
+          <div class="grid grid-cols-3 gap-3">
+            <div>
+              <label class="field-label">Tax Rate %</label>
+              <input id="set-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-input-plain text-center"/>
+              <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 10 = 10%</p>
+            </div>
+            <div>
+              <label class="field-label">Shipping</label>
+              <input id="set-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-input-plain text-center"/>
+            </div>
+            <div>
+              <label class="field-label">Margin %</label>
+              <input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-input-plain text-center"/>
+              <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 30 = 30%</p>
+            </div>
+          </div>
+        </div>
+
+        <button onclick="saveSettings()" class="btn-primary mt-5 flex items-center justify-center gap-2">
+          <svg id="save-spin" class="hidden spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <svg id="save-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+          <span id="save-text">Save Settings</span>
+        </button>
+      </div>
+
+      <!-- Account card -->
+      <div class="glass p-5 fade-up fade-up-2">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+          </div>
+          <h2 class="font-display font-semibold text-base text-white">Account</h2>
+        </div>
+        <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
+          <div class="w-9 h-9 rounded-full flex items-center justify-center font-display font-bold text-sm" style="background:linear-gradient(135deg,#1a5fcc,#2f88ff)">
+            <span id="account-initial">?</span>
+          </div>
+          <div>
+            <p id="set-email" class="text-sm font-medium text-white"></p>
+            <p class="text-xs" style="color:var(--text-3)">Active account</p>
+          </div>
+        </div>
+        <button onclick="signOut()" class="btn-ghost w-full flex items-center justify-center gap-2">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
+        </button>
+      </div>
+
+      <!-- Math explainer -->
+      <div class="glass p-5 fade-up fade-up-3">
+        <div class="flex items-center gap-2 mb-3">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          <h3 class="font-display font-semibold text-sm text-white">Range Math Explained</h3>
+        </div>
+        <div class="space-y-2 text-xs leading-relaxed" style="color:var(--text-2)">
+          <p><span class="text-red-400 font-semibold">Floor Price</span> — The break-even limit. lim(margin→0): (Cost+Ads+Ship) ÷ (1−Tax). You cannot go below this or you lose money.</p>
+          <p><span style="color:#60a5fa" class="font-semibold">Recommended Price</span> — Your target margin baked in: Total ÷ (1−Tax−Margin).</p>
+          <p><span style="color:#00e5a0" class="font-semibold">Premium Price</span> — Recommended × 1.15 to absorb refunds, chargebacks & unexpected costs.</p>
         </div>
       </div>
     </div>
 
-    <!-- Main content -->
-    <main class="max-w-2xl mx-auto w-full px-4 py-6 flex-1">
+  </main>
+</div>
 
-      <!-- ── CALCULATOR SECTION ── -->
-      <div id="section-calculator" class="section active">
+<!-- ═══════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════ -->
+<script>
+// ─────────────────────────────────────────────
+//  CONFIG  ← Replace with your Supabase values
+// ─────────────────────────────────────────────
+const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
 
-        <!-- Result cards -->
-        <div class="grid grid-cols-3 gap-3 mb-6">
-          <div class="stat-card bg-gradient-to-br from-electric-600/20 to-electric-500/5">
-            <p class="text-xs text-slate-400 mb-1 font-medium uppercase tracking-wider">Sell Price</p>
-            <p id="result-price" class="text-xl font-display text-white">—</p>
-          </div>
-          <div class="stat-card bg-gradient-to-br from-emerald-500/15 to-emerald-500/5">
-            <p class="text-xs text-slate-400 mb-1 font-medium uppercase tracking-wider">Break-even</p>
-            <p id="result-breakeven" class="text-xl font-display text-emerald-400">—</p>
-          </div>
-          <div class="stat-card bg-gradient-to-br from-rose-500/15 to-rose-500/5">
-            <p class="text-xs text-slate-400 mb-1 font-medium uppercase tracking-wider">Net Profit</p>
-            <p id="result-profit" class="text-xl font-display text-rose-400">—</p>
-          </div>
-        </div>
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-        <!-- Inputs -->
-        <div class="glass rounded-2xl p-5 mb-4">
-          <h2 class="font-display text-base text-white mb-4 flex items-center gap-2">
-            <i data-lucide="package" class="w-4 h-4 text-electric-400"></i>
-            Product Details
-          </h2>
-          <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Product Cost</label>
-              <div class="relative">
-                <span id="symbol-cost" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                <input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00"
-                  class="field pl-7" oninput="calculate()" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Marketing / Ads Cost</label>
-              <div class="relative">
-                <span id="symbol-ads" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                <input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00"
-                  class="field pl-7" oninput="calculate()" />
-              </div>
-            </div>
-          </div>
-        </div>
+const SYMBOLS = { USD:'$', EUR:'€', GBP:'£', JPY:'¥', AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥', BRL:'R$', MXN:'$' };
+let currentUser = null;
+let currency = 'USD';
+let authMode = 'login';
 
-        <!-- Defaults (editable override) -->
-        <div class="glass rounded-2xl p-5 mb-5">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="font-display text-base text-white flex items-center gap-2">
-              <i data-lucide="sliders-horizontal" class="w-4 h-4 text-electric-400"></i>
-              Global Defaults
-            </h2>
-            <span class="text-xs text-slate-500 bg-slate-800 px-2 py-0.5 rounded-full">Auto-loaded</span>
-          </div>
-          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Tax Rate %</label>
-              <input id="inp-tax" type="number" min="0" max="100" step="0.1" placeholder="10"
-                class="field" oninput="calculate()" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Shipping</label>
-              <div class="relative">
-                <span id="symbol-ship" class="absolute left-3 top-1/2 -translate-y-1/2 text-slate-500 text-sm">$</span>
-                <input id="inp-shipping" type="number" min="0" step="0.01" placeholder="5.00"
-                  class="field pl-7" oninput="calculate()" />
-              </div>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Net Margin %</label>
-              <input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="30"
-                class="field" oninput="calculate()" />
-            </div>
-          </div>
-        </div>
+// Chart.js instance
+let profitChart = null;
 
-        <!-- Formula explainer -->
-        <div class="glass rounded-xl px-4 py-3 mb-5 flex items-start gap-3">
-          <i data-lucide="info" class="w-4 h-4 text-electric-400 flex-shrink-0 mt-0.5"></i>
-          <p class="text-xs text-slate-400 leading-relaxed">
-            <span class="text-slate-300 font-medium">Reverse Profit Formula: </span>
-            Price = (Cost + Ads + Shipping) ÷ (1 − Tax% − Margin%)
-          </p>
-        </div>
+// Range state
+let rangeState = { floor: 0, rec: 0, prem: 0, totalCost: 0 };
 
-        <!-- YouTube CTA -->
-        <a href="https://www.youtube.com" target="_blank"
-          class="yt-cta flex items-center gap-3 rounded-xl p-4 transition-all cursor-pointer group mb-2">
-          <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-            <i data-lucide="youtube" class="w-5 h-5 text-white"></i>
-          </div>
-          <div class="flex-1 min-w-0">
-            <p class="text-sm font-semibold text-white">Subscribe for AI Strategy Insights</p>
-            <p class="text-xs text-slate-500 truncate">Pricing strategies, growth hacks & global e-commerce</p>
-          </div>
-          <i data-lucide="arrow-right" class="w-4 h-4 text-slate-600 group-hover:text-red-400 transition-colors flex-shrink-0"></i>
-        </a>
-      </div>
+// ── Init ──────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) { currentUser = session.user; await boot(); }
+  sb.auth.onAuthStateChange(async (_, session) => {
+    if (session?.user && !currentUser) { currentUser = session.user; await boot(); }
+    else if (!session) { currentUser = null; toAuth(); }
+  });
+  initChart();
+});
 
-      <!-- ── SETTINGS SECTION ── -->
-      <div id="section-settings" class="section">
-        <div class="glass rounded-2xl p-5 mb-4">
-          <h2 class="font-display text-base text-white mb-1 flex items-center gap-2">
-            <i data-lucide="settings-2" class="w-4 h-4 text-electric-400"></i>
-            Global Defaults
-          </h2>
-          <p class="text-xs text-slate-500 mb-5">These values auto-load into your calculator every session.</p>
+// ── Auth ─────────────────────────────────────
+function switchAuthTab(m) {
+  authMode = m;
+  ['login','signup'].forEach(t => {
+    const el = document.getElementById(`atab-${t}`);
+    el.classList.toggle('active', t === m);
+  });
+  document.getElementById('a-btn-text').textContent = m === 'login' ? 'Sign In' : 'Create Account';
+}
 
-          <div class="space-y-4">
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Currency</label>
-              <select id="set-currency" class="field">
-                <option value="USD">USD — US Dollar ($)</option>
-                <option value="EUR">EUR — Euro (€)</option>
-                <option value="GBP">GBP — British Pound (£)</option>
-                <option value="JPY">JPY — Japanese Yen (¥)</option>
-                <option value="AUD">AUD — Australian Dollar (A$)</option>
-                <option value="CAD">CAD — Canadian Dollar (C$)</option>
-                <option value="CHF">CHF — Swiss Franc (Fr)</option>
-                <option value="CNY">CNY — Chinese Yuan (¥)</option>
-                <option value="BRL">BRL — Brazilian Real (R$)</option>
-                <option value="MXN">MXN — Mexican Peso ($)</option>
-              </select>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Default Tax Rate (%)</label>
-              <input id="set-tax" type="number" min="0" max="100" step="0.1" placeholder="e.g. 10" class="field" />
-              <p class="text-xs text-slate-600 mt-1">Enter as percentage, e.g. 10 for 10%</p>
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Default Shipping Cost</label>
-              <input id="set-shipping" type="number" min="0" step="0.01" placeholder="e.g. 5.00" class="field" />
-            </div>
-            <div>
-              <label class="block text-xs font-medium text-slate-400 mb-1.5 uppercase tracking-wider">Desired Net Margin (%)</label>
-              <input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="e.g. 30" class="field" />
-              <p class="text-xs text-slate-600 mt-1">Enter as percentage, e.g. 30 for 30%</p>
-            </div>
-          </div>
+async function handleAuth() {
+  const email = document.getElementById('a-email').value.trim();
+  const pass  = document.getElementById('a-pass').value;
+  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
+  setAuthLoad(true);
+  try {
+    const fn = authMode === 'login'
+      ? sb.auth.signInWithPassword({ email, password: pass })
+      : sb.auth.signUp({ email, password: pass });
+    const { error, data } = await fn;
+    if (error) throw error;
+    if (authMode === 'signup' && !data?.session) toast('Check your email to confirm!', 'info');
+    else toast('Welcome! 🚀', 'success');
+  } catch(e) { toast(e.message || 'Auth failed', 'error'); }
+  finally { setAuthLoad(false); }
+}
+function setAuthLoad(l) {
+  document.getElementById('a-spin').classList.toggle('hidden', !l);
+  document.getElementById('a-btn-text').classList.toggle('hidden', l);
+  document.getElementById('a-btn').disabled = l;
+}
 
-          <button onclick="saveSettings()"
-            class="btn-electric w-full mt-6 py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2">
-            <span id="save-btn-text">Save Settings</span>
-            <span id="save-spinner" class="hidden"><span class="spinner"></span></span>
-            <i data-lucide="save" class="w-4 h-4" id="save-icon"></i>
-          </button>
-        </div>
+// ── Boot ──────────────────────────────────────
+async function boot() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('nav-email').textContent = currentUser.email;
+  document.getElementById('set-email').textContent = currentUser.email;
+  document.getElementById('account-initial').textContent = currentUser.email[0].toUpperCase();
+  await loadProfile();
+}
+function toAuth() {
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
 
-        <!-- Account info -->
-        <div class="glass rounded-2xl p-5">
-          <h2 class="font-display text-base text-white mb-3 flex items-center gap-2">
-            <i data-lucide="user-circle" class="w-4 h-4 text-electric-400"></i>
-            Account
-          </h2>
-          <div class="flex items-center gap-3 mb-4">
-            <div class="w-9 h-9 rounded-full bg-electric-600/30 border border-electric-500/30 flex items-center justify-center">
-              <i data-lucide="user" class="w-4 h-4 text-electric-400"></i>
-            </div>
-            <div>
-              <p id="set-email" class="text-sm font-medium text-white"></p>
-              <p class="text-xs text-slate-500">Active account</p>
-            </div>
-          </div>
-          <button onclick="signOut()"
-            class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm font-medium hover:border-rose-500/40 hover:text-rose-400 transition-all flex items-center justify-center gap-2">
-            <i data-lucide="log-out" class="w-4 h-4"></i>
-            Sign Out
-          </button>
-        </div>
-      </div>
+// ── Load profile ──────────────────────────────
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (data) applyProfile(data);
+}
 
-    </main>
-  </div>
+function applyProfile(d) {
+  currency = d.currency || 'USD';
+  const tax    = +(d.default_tax    * 100).toFixed(4);
+  const margin = +(d.default_margin * 100).toFixed(4);
+  setVal('inp-tax',    tax);
+  setVal('inp-ship',   d.default_shipping);
+  setVal('inp-margin', margin);
+  setVal('set-tax',    tax);
+  setVal('set-ship',   d.default_shipping);
+  setVal('set-margin', margin);
+  document.getElementById('set-currency').value = currency;
+  updateSymbols();
+  calculate();
+}
+function setVal(id, v) { document.getElementById(id).value = v; }
 
-  <!-- ─────────────────────────────────────────────────
-       JAVASCRIPT
-  ───────────────────────────────────────────────── -->
-  <script>
-    // ══════════════════════════════════════════
-    //  CONFIG — Replace with your Supabase creds
-    // ══════════════════════════════════════════
-    const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
+// ── Save settings ──────────────────────────────
+async function saveSettings() {
+  const tax     = parseFloat(document.getElementById('set-tax').value)      || 0;
+  const ship    = parseFloat(document.getElementById('set-ship').value)      || 0;
+  const margin  = parseFloat(document.getElementById('set-margin').value)    || 0;
+  const cur     = document.getElementById('set-currency').value;
+  if (tax + margin >= 100) { toast('Tax + Margin must be < 100%', 'error'); return; }
+  setSaveLoad(true);
+  const { error } = await sb.from('profiles').upsert({
+    id: currentUser.id, email: currentUser.email,
+    default_tax: tax/100, default_shipping: ship, default_margin: margin/100,
+    currency: cur, updated_at: new Date().toISOString()
+  }, { onConflict: 'id' });
+  setSaveLoad(false);
+  if (error) { toast(error.message, 'error'); return; }
+  currency = cur;
+  setVal('inp-tax', tax); setVal('inp-ship', ship); setVal('inp-margin', margin);
+  updateSymbols(); calculate();
+  toast('Settings saved ✓', 'success');
+}
+function setSaveLoad(l) {
+  document.getElementById('save-spin').classList.toggle('hidden', !l);
+  document.getElementById('save-icon').classList.toggle('hidden', l);
+  document.getElementById('save-text').textContent = l ? 'Saving…' : 'Save Settings';
+}
 
-    const { createClient } = supabase;
-    const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+// ── Currency ──────────────────────────────────
+function updateSymbols() {
+  const s = SYMBOLS[currency] || '$';
+  ['sym-cost','sym-ads','sym-ship'].forEach(id => document.getElementById(id).textContent = s);
+}
 
-    // Currency symbols map
-    const CURRENCY_SYMBOLS = {
-      USD: '$', EUR: '€', GBP: '£', JPY: '¥', AUD: 'A$',
-      CAD: 'C$', CHF: 'Fr', CNY: '¥', BRL: 'R$', MXN: '$'
-    };
+// ── Core Calculations ─────────────────────────
+// Floor  = (cost+ads+ship) / (1 - taxRate)               [margin→0]
+// Target = (cost+ads+ship) / (1 - taxRate - marginRate)
+// Premium= Target × 1.15
+function calculate() {
+  const cost   = parseFloat(document.getElementById('inp-cost').value)   || 0;
+  const ads    = parseFloat(document.getElementById('inp-ads').value)    || 0;
+  const tax    = (parseFloat(document.getElementById('inp-tax').value)   || 0) / 100;
+  const ship   = parseFloat(document.getElementById('inp-ship').value)   || 0;
+  const margin = (parseFloat(document.getElementById('inp-margin').value)|| 0) / 100;
 
-    let currentUser  = null;
-    let userProfile  = null;
-    let currentCurrency = 'USD';
-    let authMode     = 'login'; // 'login' | 'signup'
+  const total  = cost + ads + ship;
+  const divFloor  = 1 - tax;
+  const divTarget = 1 - tax - margin;
 
-    // ── Init ────────────────────────────────────
-    window.addEventListener('DOMContentLoaded', async () => {
-      lucide.createIcons();
-      const { data: { session } } = await sb.auth.getSession();
-      if (session?.user) {
-        currentUser = session.user;
-        await bootApp();
-      }
-      sb.auth.onAuthStateChange(async (_event, session) => {
-        if (session?.user && !currentUser) {
-          currentUser = session.user;
-          await bootApp();
-        } else if (!session) {
-          currentUser = null;
-          showAuthScreen();
+  const s = SYMBOLS[currency] || '$';
+
+  if (divFloor <= 0 || divTarget <= 0 || divTarget >= 1.5) {
+    ['val-floor','val-rec','val-prem'].forEach(id => document.getElementById(id).textContent = '—');
+    return;
+  }
+
+  const floor = total / divFloor;
+  const rec   = total / divTarget;
+  const prem  = rec * 1.15;
+
+  rangeState = { floor, rec, prem, total, tax, margin };
+
+  animVal('val-floor', `${s}${floor.toFixed(2)}`);
+  animVal('val-rec',   `${s}${rec.toFixed(2)}`);
+  animVal('val-prem',  `${s}${prem.toFixed(2)}`);
+
+  // Update slider range
+  const slider = document.getElementById('price-slider');
+  const sliderMin = Math.max(0, floor * 0.7);
+  const sliderMax = prem * 1.3;
+  slider.min = sliderMin.toFixed(2);
+  slider.max = sliderMax.toFixed(2);
+  slider.value = rec.toFixed(2);
+  document.getElementById('slider-min-label').textContent = `${s}${floor.toFixed(0)}`;
+  document.getElementById('slider-rec-label').textContent = `${s}${rec.toFixed(0)}`;
+  document.getElementById('slider-max-label').textContent = `${s}${prem.toFixed(0)}`;
+  onSliderChange(rec, true);
+
+  updateChart(floor, rec, prem, total, tax);
+}
+
+function animVal(id, val) {
+  const el = document.getElementById(id);
+  if (el.textContent !== val) {
+    el.textContent = val;
+    el.closest('.range-card')?.classList.remove('pop');
+    void el.offsetWidth;
+    el.closest('.range-card')?.classList.add('pop');
+  }
+}
+
+// ── Slider ────────────────────────────────────
+function onSliderChange(rawVal, skipUpdate) {
+  const price  = parseFloat(rawVal);
+  const slider = document.getElementById('price-slider');
+  const min    = parseFloat(slider.min);
+  const max    = parseFloat(slider.max);
+  const pct    = ((price - min) / (max - min)) * 100;
+  slider.style.setProperty('--pct', pct.toFixed(1) + '%');
+
+  const s = SYMBOLS[currency] || '$';
+  const { total, tax } = rangeState;
+
+  // Net profit at this price
+  const revenue = price;
+  const taxAmt  = revenue * tax;
+  const net     = revenue - taxAmt - total;
+  const marginAchieved = revenue > 0 ? ((net / revenue) * 100) : 0;
+
+  document.getElementById('slider-price-display').textContent = `${s}${price.toFixed(2)}`;
+  document.getElementById('slider-profit').textContent = `${s}${net.toFixed(2)}`;
+
+  const mEl = document.getElementById('slider-margin-pct');
+  mEl.textContent = `${marginAchieved.toFixed(1)}%`;
+  mEl.style.color = marginAchieved > 0 ? '#00e5a0' : '#ff4d6d';
+
+  const profitEl = document.getElementById('slider-profit');
+  profitEl.style.color = net >= 0 ? '#00e5a0' : '#ff4d6d';
+
+  if (!skipUpdate) updateChartMarker(price);
+}
+
+// ── Chart ─────────────────────────────────────
+function initChart() {
+  const ctx = document.getElementById('profit-chart').getContext('2d');
+  profitChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: [],
+      datasets: [
+        {
+          label: 'Net Profit',
+          data: [],
+          borderColor: '#2f88ff',
+          backgroundColor: (ctx) => {
+            const chart = ctx.chart;
+            const { ctx: c, chartArea } = chart;
+            if (!chartArea) return 'transparent';
+            const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            gradient.addColorStop(0, 'rgba(47,136,255,0.25)');
+            gradient.addColorStop(1, 'rgba(47,136,255,0.0)');
+            return gradient;
+          },
+          fill: true,
+          tension: 0.45,
+          pointRadius: 0,
+          borderWidth: 2.5,
+        },
+        {
+          label: 'Break-even',
+          data: [],
+          borderColor: 'rgba(255,77,109,0.55)',
+          borderDash: [5, 4],
+          fill: false,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0,
+        },
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(7,14,31,0.92)',
+          borderColor: 'rgba(47,136,255,0.3)',
+          borderWidth: 1,
+          titleColor: '#93c5fd',
+          bodyColor: '#e8edf5',
+          padding: 10,
+          callbacks: {
+            label: ctx => {
+              const s = SYMBOLS[currency] || '$';
+              return ` ${ctx.dataset.label}: ${s}${ctx.parsed.y.toFixed(2)}`;
+            }
+          }
         }
-      });
-    });
-
-    // ── Auth tab toggle ──────────────────────────
-    function switchAuthTab(mode) {
-      authMode = mode;
-      const loginTab  = document.getElementById('tab-login');
-      const signupTab = document.getElementById('tab-signup');
-      const btnText   = document.getElementById('auth-btn-text');
-      if (mode === 'login') {
-        loginTab.classList.add('active-tab');
-        loginTab.classList.remove('text-slate-400');
-        signupTab.classList.remove('active-tab');
-        signupTab.classList.add('text-slate-400');
-        btnText.textContent = 'Sign In';
-      } else {
-        signupTab.classList.add('active-tab');
-        signupTab.classList.remove('text-slate-400');
-        loginTab.classList.remove('active-tab');
-        loginTab.classList.add('text-slate-400');
-        btnText.textContent = 'Create Account';
-      }
-    }
-
-    // ── Auth handler ─────────────────────────────
-    async function handleAuth() {
-      const email = document.getElementById('auth-email').value.trim();
-      const pass  = document.getElementById('auth-password').value;
-      if (!email || !pass) { showToast('Please enter email and password.', 'error'); return; }
-      setAuthLoading(true);
-      try {
-        let result;
-        if (authMode === 'login') {
-          result = await sb.auth.signInWithPassword({ email, password: pass });
-        } else {
-          result = await sb.auth.signUp({ email, password: pass });
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(56,139,253,0.06)' },
+          ticks: { color: '#3d5070', font: { size: 10, family: 'Space Grotesk' }, maxTicksLimit: 6 }
+        },
+        y: {
+          grid: { color: 'rgba(56,139,253,0.06)' },
+          ticks: {
+            color: '#3d5070', font: { size: 10, family: 'Space Grotesk' },
+            callback: v => { const s = SYMBOLS[currency]||'$'; return `${s}${v.toFixed(0)}`; }
+          }
         }
-        if (result.error) throw result.error;
-        if (authMode === 'signup' && result.data?.user && !result.data?.session) {
-          showToast('Check your email to confirm your account!', 'info');
-        } else {
-          showToast('Welcome back! 🚀', 'success');
-        }
-      } catch (err) {
-        showToast(err.message || 'Authentication failed.', 'error');
-      } finally {
-        setAuthLoading(false);
-      }
+      },
+      animation: { duration: 400, easing: 'easeInOutQuart' }
     }
+  });
+}
 
-    function setAuthLoading(loading) {
-      document.getElementById('auth-btn-text').classList.toggle('hidden', loading);
-      document.getElementById('auth-spinner').classList.toggle('hidden', !loading);
-      document.getElementById('auth-btn').disabled = loading;
-    }
+function updateChart(floor, rec, prem, total, tax) {
+  const steps = 40;
+  const priceMin = Math.max(0, floor * 0.5);
+  const priceMax = prem * 1.4;
+  const step = (priceMax - priceMin) / steps;
+  const s = SYMBOLS[currency] || '$';
 
-    // ── Boot app ─────────────────────────────────
-    async function bootApp() {
-      document.getElementById('auth-screen').classList.add('hidden');
-      document.getElementById('app-screen').classList.remove('hidden');
-      document.getElementById('nav-email').textContent = currentUser.email;
-      document.getElementById('set-email').textContent = currentUser.email;
-      await loadProfile();
-      lucide.createIcons();
-    }
+  const labels = [], profitData = [], beData = [];
+  for (let i = 0; i <= steps; i++) {
+    const p = priceMin + i * step;
+    const net = p - (p * tax) - total;
+    labels.push(`${s}${p.toFixed(1)}`);
+    profitData.push(parseFloat(net.toFixed(2)));
+    beData.push(0);
+  }
 
-    // ── Load profile ─────────────────────────────
-    async function loadProfile() {
-      const { data, error } = await sb
-        .from('profiles')
-        .select('*')
-        .eq('id', currentUser.id)
-        .single();
+  profitChart.data.labels = labels;
+  profitChart.data.datasets[0].data = profitData;
+  profitChart.data.datasets[1].data = beData;
+  profitChart.update();
+}
 
-      if (error && error.code !== 'PGRST116') {
-        showToast('Could not load settings.', 'error');
-        return;
-      }
+function updateChartMarker(price) {
+  // future enhancement: add annotation marker
+}
 
-      if (data) {
-        userProfile = data;
-        currentCurrency = data.currency || 'USD';
-        const taxPct     = +(data.default_tax * 100).toFixed(4);
-        const marginPct  = +(data.default_margin * 100).toFixed(4);
-        // Populate calculator defaults
-        document.getElementById('inp-tax').value      = taxPct;
-        document.getElementById('inp-shipping').value = data.default_shipping;
-        document.getElementById('inp-margin').value   = marginPct;
-        // Populate settings form
-        document.getElementById('set-tax').value      = taxPct;
-        document.getElementById('set-shipping').value = data.default_shipping;
-        document.getElementById('set-margin').value   = marginPct;
-        document.getElementById('set-currency').value = data.currency;
-        updateCurrencySymbols(data.currency);
-        calculate();
-      }
-    }
+// ── Section switching ─────────────────────────
+function showSection(name) {
+  ['calculator','settings'].forEach(s => {
+    document.getElementById(`section-${s}`).classList.toggle('active', s === name);
+    document.getElementById(`ntab-${s}`).classList.toggle('active', s === name);
+  });
+}
 
-    // ── Save settings ────────────────────────────
-    async function saveSettings() {
-      const taxPct      = parseFloat(document.getElementById('set-tax').value)      || 0;
-      const shipping    = parseFloat(document.getElementById('set-shipping').value)  || 0;
-      const marginPct   = parseFloat(document.getElementById('set-margin').value)    || 0;
-      const currency    = document.getElementById('set-currency').value;
+// ── Sign out ──────────────────────────────────
+async function signOut() {
+  await sb.auth.signOut();
+  currentUser = null;
+  toAuth();
+  toast('Signed out', 'info');
+}
 
-      if (taxPct + marginPct >= 100) {
-        showToast('Tax + Margin must be less than 100%.', 'error'); return;
-      }
-
-      setSaveLoading(true);
-      const payload = {
-        id: currentUser.id,
-        email: currentUser.email,
-        default_tax:      taxPct / 100,
-        default_shipping: shipping,
-        default_margin:   marginPct / 100,
-        currency,
-        updated_at: new Date().toISOString()
-      };
-      const { error } = await sb.from('profiles').upsert(payload, { onConflict: 'id' });
-      setSaveLoading(false);
-      if (error) { showToast(error.message, 'error'); return; }
-
-      // Sync to calculator
-      currentCurrency = currency;
-      document.getElementById('inp-tax').value      = taxPct;
-      document.getElementById('inp-shipping').value = shipping;
-      document.getElementById('inp-margin').value   = marginPct;
-      updateCurrencySymbols(currency);
-      calculate();
-      showToast('Settings saved successfully! ✓', 'success');
-    }
-
-    function setSaveLoading(loading) {
-      document.getElementById('save-btn-text').classList.toggle('hidden', loading);
-      document.getElementById('save-spinner').classList.toggle('hidden', !loading);
-      document.getElementById('save-icon').classList.toggle('hidden', loading);
-    }
-
-    // ── Currency symbols ─────────────────────────
-    function updateCurrencySymbols(code) {
-      const sym = CURRENCY_SYMBOLS[code] || '$';
-      ['symbol-cost','symbol-ads','symbol-ship'].forEach(id => {
-        document.getElementById(id).textContent = sym;
-      });
-    }
-
-    // ── Pricing Calculator ───────────────────────
-    // Formula: Price = (Cost + Ads + Shipping) / (1 - TaxRate - MarginRate)
-    function calculate() {
-      const cost     = parseFloat(document.getElementById('inp-cost').value)     || 0;
-      const ads      = parseFloat(document.getElementById('inp-ads').value)      || 0;
-      const taxPct   = parseFloat(document.getElementById('inp-tax').value)      || 0;
-      const shipping = parseFloat(document.getElementById('inp-shipping').value) || 0;
-      const margin   = parseFloat(document.getElementById('inp-margin').value)   || 0;
-
-      const taxRate    = taxPct  / 100;
-      const marginRate = margin  / 100;
-      const divisor    = 1 - taxRate - marginRate;
-
-      const sym = CURRENCY_SYMBOLS[currentCurrency] || '$';
-
-      if (divisor <= 0 || divisor >= 1.5) {
-        setResults('—', '—', '—');
-        return;
-      }
-
-      const totalCost  = cost + ads + shipping;
-      const price      = totalCost / divisor;
-      const breakeven  = cost + ads + shipping;
-      const netProfit  = price * marginRate;
-
-      animateResult('result-price',    `${sym}${price.toFixed(2)}`);
-      animateResult('result-breakeven',`${sym}${breakeven.toFixed(2)}`);
-      animateResult('result-profit',   `${sym}${netProfit.toFixed(2)}`);
-
-      // Color the profit
-      const profitEl = document.getElementById('result-profit');
-      profitEl.className = `text-xl font-display ${netProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'}`;
-    }
-
-    function animateResult(id, value) {
-      const el = document.getElementById(id);
-      if (el.textContent !== value) {
-        el.textContent = value;
-        el.classList.remove('num-pop');
-        void el.offsetWidth;
-        el.classList.add('num-pop');
-      }
-    }
-
-    function setResults(price, be, profit) {
-      document.getElementById('result-price').textContent    = price;
-      document.getElementById('result-breakeven').textContent = be;
-      document.getElementById('result-profit').textContent   = profit;
-    }
-
-    // ── Section tabs ─────────────────────────────
-    function showSection(name) {
-      ['calculator','settings'].forEach(s => {
-        const sec = document.getElementById(`section-${s}`);
-        const btn = document.getElementById(`nav-${s}`);
-        if (s === name) {
-          sec.classList.add('active');
-          btn.classList.add('active-tab');
-          btn.classList.remove('text-slate-400');
-        } else {
-          sec.classList.remove('active');
-          btn.classList.remove('active-tab');
-          btn.classList.add('text-slate-400');
-        }
-      });
-      lucide.createIcons();
-    }
-
-    // ── Sign out ─────────────────────────────────
-    async function signOut() {
-      await sb.auth.signOut();
-      currentUser = null;
-      userProfile = null;
-      showAuthScreen();
-      showToast('Signed out successfully.', 'info');
-    }
-
-    function showAuthScreen() {
-      document.getElementById('app-screen').classList.add('hidden');
-      document.getElementById('auth-screen').classList.remove('hidden');
-      lucide.createIcons();
-    }
-
-    // ── Toast ────────────────────────────────────
-    let toastTimer;
-    function showToast(msg, type = 'info') {
-      const t = document.getElementById('toast');
-      t.textContent = msg;
-      t.className = `show ${type}`;
-      clearTimeout(toastTimer);
-      toastTimer = setTimeout(() => { t.classList.remove('show'); }, 3400);
-    }
-  </script>
+// ── Toast ─────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
+</script>
 </body>
 </html>
+
 
