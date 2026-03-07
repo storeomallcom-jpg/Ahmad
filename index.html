@@ -3,704 +3,936 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>Grow Storeomall AI v2</title>
+  <title>ProfitPilot AI — Strategic Pricing Engine</title>
 
+  <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=IBM+Plex+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            display: ['Syne', 'sans-serif'],
+            mono: ['DM Mono', 'monospace'],
+          }
+        }
+      }
+    }
+  </script>
 
   <style>
-/* ══════════════════════════════════
-   DESIGN TOKENS
-══════════════════════════════════ */
-:root {
-  --ink:      #0d0d0d;
-  --ink-2:    #141414;
-  --ink-3:    #1c1c1c;
-  --line:     rgba(255,255,255,0.07);
-  --line-hi:  rgba(255,255,255,0.13);
-  --gold:     #c9a84c;
-  --gold-2:   #e0bf72;
-  --gold-dim: rgba(201,168,76,0.12);
-  --cream:    #f0ebe0;
-  --muted:    #6b6760;
-  --muted-2:  #3a3836;
-  --green:    #4caf82;
-  --red:      #c9614c;
-  --white:    #f5f2ec;
-  --r:        14px;
-  --ff-s: 'Playfair Display', Georgia, serif;
-  --ff-m: 'IBM Plex Mono', 'Courier New', monospace;
-}
+    :root {
+      --navy:       #04091a;
+      --navy-2:     #060d20;
+      --navy-3:     #091228;
+      --card:       rgba(8, 18, 42, 0.75);
+      --border:     rgba(56, 139, 253, 0.11);
+      --border-hi:  rgba(56, 139, 253, 0.32);
+      --blue:       #3b82f6;
+      --blue-dim:   #1d4ed8;
+      --blue-glow:  rgba(59, 130, 246, 0.35);
+      --cyan:       #22d3ee;
+      --emerald:    #10b981;
+      --emerald-glow: rgba(16, 185, 129, 0.22);
+      --amber:      #f59e0b;
+      --rose:       #f43f5e;
+      --text-1:     #e2e8f4;
+      --text-2:     #6b82a8;
+      --text-3:     #2d3f5e;
+    }
 
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html { scroll-behavior: smooth; }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    html { scroll-behavior: smooth; }
 
-body {
-  background: var(--ink);
-  color: var(--cream);
-  font-family: var(--ff-m);
-  min-height: 100svh;
-  overflow-x: hidden;
-  -webkit-font-smoothing: antialiased;
-}
+    body {
+      font-family: 'DM Mono', monospace;
+      background: var(--navy);
+      color: var(--text-1);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-/* Ambient glow */
-body::before {
-  content: '';
-  position: fixed; inset: 0; z-index: 0; pointer-events: none;
-  background:
-    radial-gradient(ellipse 55% 45% at 10% 0%,   rgba(201,168,76,0.06) 0%, transparent 65%),
-    radial-gradient(ellipse 40% 35% at 90% 100%,  rgba(76,175,130,0.04) 0%, transparent 60%);
-}
+    /* ── Background ── */
+    .bg-mesh {
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background:
+        radial-gradient(ellipse 70% 55% at 15% -5%, rgba(59,130,246,0.14) 0%, transparent 65%),
+        radial-gradient(ellipse 50% 40% at 85% 105%, rgba(16,185,129,0.09) 0%, transparent 60%),
+        radial-gradient(ellipse 40% 30% at 50% 50%, rgba(34,211,238,0.04) 0%, transparent 70%),
+        var(--navy);
+    }
+    .bg-mesh::before {
+      content: '';
+      position: absolute; inset: 0;
+      background-image:
+        radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.45) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 38% 8%, rgba(255,255,255,0.3) 0%, transparent 100%),
+        radial-gradient(1px 1px at 65% 28%, rgba(255,255,255,0.35) 0%, transparent 100%),
+        radial-gradient(1px 1px at 82% 12%, rgba(255,255,255,0.25) 0%, transparent 100%),
+        radial-gradient(1px 1px at 25% 65%, rgba(255,255,255,0.2) 0%, transparent 100%),
+        radial-gradient(1.5px 1.5px at 55% 75%, rgba(255,255,255,0.28) 0%, transparent 100%),
+        radial-gradient(1px 1px at 92% 58%, rgba(255,255,255,0.22) 0%, transparent 100%),
+        radial-gradient(1px 1px at 7% 85%, rgba(255,255,255,0.18) 0%, transparent 100%);
+    }
 
-.layer { position: relative; z-index: 1; }
-.hidden { display: none !important; }
+    .glow-orb {
+      position: fixed; pointer-events: none; z-index: 0;
+      border-radius: 50%; filter: blur(90px);
+      animation: orbFloat 22s ease-in-out infinite;
+    }
+    .glow-orb-1 {
+      width: 600px; height: 600px;
+      background: radial-gradient(circle, rgba(59,130,246,0.11) 0%, transparent 70%);
+      top: -200px; left: -200px;
+    }
+    .glow-orb-2 {
+      width: 450px; height: 450px;
+      background: radial-gradient(circle, rgba(16,185,129,0.08) 0%, transparent 70%);
+      bottom: -150px; right: -150px;
+      animation-delay: -11s;
+    }
+    @keyframes orbFloat {
+      0%,100% { transform: translate(0,0) scale(1); }
+      33%      { transform: translate(50px, 35px) scale(1.04); }
+      66%      { transform: translate(-35px, 22px) scale(0.96); }
+    }
 
-/* ══════════════════════════════════
-   SCROLLBAR
-══════════════════════════════════ */
-::-webkit-scrollbar { width: 4px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: var(--muted-2); border-radius: 2px; }
+    /* ── Glass ── */
+    .glass {
+      background: var(--card);
+      backdrop-filter: blur(28px) saturate(180%);
+      -webkit-backdrop-filter: blur(28px) saturate(180%);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+    }
+    .glass-hi { border-color: var(--border-hi); }
+    .glass-xl { border-radius: 24px; }
 
-/* ══════════════════════════════════
-   INPUTS
-══════════════════════════════════ */
-.field {
-  width: 100%; height: 52px;
-  background: var(--ink-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r);
-  color: var(--white);
-  font-family: var(--ff-m); font-size: 0.95rem;
-  padding: 0 1rem;
-  outline: none;
-  transition: border-color 0.15s, background 0.15s;
-  -moz-appearance: textfield;
-}
-.field::-webkit-inner-spin-button,
-.field::-webkit-outer-spin-button { -webkit-appearance: none; }
-.field:focus { border-color: var(--gold); background: #222; }
-.field::placeholder { color: var(--muted-2); }
-.field option { background: var(--ink-2); }
+    /* ── Inputs ── */
+    .neon-input {
+      background: rgba(4, 9, 26, 0.85);
+      border: 1.5px solid rgba(56,139,253,0.14);
+      border-radius: 13px;
+      color: var(--text-1);
+      padding: 0.875rem 1rem 0.875rem 2.6rem;
+      font-size: 0.95rem;
+      font-family: 'DM Mono', monospace;
+      width: 100%; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 50px;
+      -moz-appearance: textfield;
+    }
+    .neon-input::-webkit-outer-spin-button,
+    .neon-input::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .neon-input:focus {
+      border-color: rgba(59,130,246,0.5);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.09), 0 0 18px rgba(59,130,246,0.07);
+    }
+    .neon-input::placeholder { color: var(--text-3); }
 
-/* prefix / suffix symbol wrappers */
-.fw { position: relative; }
-.fw .sym {
-  position: absolute; left: 1rem; top: 50%; transform: translateY(-50%);
-  font-size: 0.8rem; color: var(--muted); pointer-events: none;
-}
-.fw .field { padding-left: 2rem; }
-.fw.s .field { padding-left: 1rem; padding-right: 2rem; }
-.fw.s .sym   { left: auto; right: 1rem; }
+    .neon-plain {
+      background: rgba(4,9,26,0.85);
+      border: 1.5px solid rgba(56,139,253,0.14);
+      border-radius: 13px;
+      color: var(--text-1);
+      padding: 0.875rem 1rem;
+      font-size: 0.95rem;
+      font-family: 'DM Mono', monospace;
+      width: 100%; outline: none;
+      transition: border-color 0.2s, box-shadow 0.2s;
+      min-height: 50px;
+      -moz-appearance: textfield;
+    }
+    .neon-plain::-webkit-outer-spin-button,
+    .neon-plain::-webkit-inner-spin-button { -webkit-appearance: none; }
+    .neon-plain:focus {
+      border-color: rgba(59,130,246,0.5);
+      box-shadow: 0 0 0 3px rgba(59,130,246,0.09);
+    }
+    .neon-plain::placeholder { color: var(--text-3); }
+    .neon-plain option { background: #0a1428; }
 
-.lbl { display: block; font-size: 0.62rem; letter-spacing: 0.09em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.45rem; }
+    /* ── Buttons ── */
+    .btn-primary {
+      background: linear-gradient(135deg, #1d4ed8 0%, #3b82f6 55%, #60a5fa 100%);
+      box-shadow: 0 4px 26px rgba(59,130,246,0.32), inset 0 1px 0 rgba(255,255,255,0.14);
+      border-radius: 14px;
+      color: #fff;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 1rem;
+      min-height: 52px;
+      padding: 0 1.5rem;
+      width: 100%;
+      cursor: pointer;
+      transition: box-shadow 0.2s, transform 0.15s;
+      border: none;
+      letter-spacing: 0.01em;
+    }
+    .btn-primary:hover {
+      box-shadow: 0 8px 40px rgba(59,130,246,0.52), inset 0 1px 0 rgba(255,255,255,0.14);
+      transform: translateY(-2px);
+    }
+    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 12px var(--blue-glow); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
-/* ══════════════════════════════════
-   BUTTONS
-══════════════════════════════════ */
-.btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
-  height: 52px; padding: 0 1.5rem; border-radius: var(--r); border: none; cursor: pointer;
-  font-family: var(--ff-m); font-size: 0.82rem; letter-spacing: 0.04em;
-  transition: opacity 0.15s, transform 0.12s;
-}
-.btn:hover   { opacity: 0.88; transform: translateY(-1px); }
-.btn:active  { transform: translateY(0); }
-.btn:disabled { opacity: 0.35; cursor: not-allowed; transform: none; }
+    .btn-ghost {
+      background: transparent;
+      border: 1.5px solid var(--border);
+      border-radius: 13px;
+      color: var(--text-2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.875rem;
+      min-height: 46px;
+      padding: 0 1.25rem;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text-1); background: rgba(59,130,246,0.07); }
 
-.btn-gold {
-  background: var(--gold); color: var(--ink); width: 100%; font-weight: 500;
-  box-shadow: 0 4px 18px rgba(201,168,76,0.2);
-}
-.btn-ghost {
-  background: transparent; border: 1px solid var(--line); color: var(--muted);
-  height: 38px; padding: 0 1rem; font-size: 0.75rem;
-}
-.btn-ghost:hover { border-color: var(--line-hi); color: var(--cream); }
+    /* ── Hero ── */
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 0.5rem;
+      padding: 0.4rem 1rem; border-radius: 999px;
+      background: rgba(59,130,246,0.1);
+      border: 1px solid rgba(59,130,246,0.25);
+      font-size: 0.75rem; letter-spacing: 0.06em; text-transform: uppercase;
+      color: #93c5fd;
+      animation: heroFadeUp 0.7s ease both;
+    }
+    .hero-title {
+      font-family: 'Syne', sans-serif;
+      font-weight: 800;
+      font-size: clamp(2.2rem, 5.5vw, 4rem);
+      line-height: 1.1;
+      letter-spacing: -0.03em;
+      color: #fff;
+      animation: heroFadeUp 0.7s 0.1s ease both;
+    }
+    .hero-title .accent {
+      background: linear-gradient(135deg, #3b82f6, #22d3ee, #10b981);
+      -webkit-background-clip: text; background-clip: text; color: transparent;
+    }
+    .hero-sub {
+      font-size: clamp(0.95rem, 2vw, 1.1rem);
+      color: var(--text-2);
+      line-height: 1.7;
+      max-width: 56ch;
+      animation: heroFadeUp 0.7s 0.2s ease both;
+    }
+    .hero-actions { animation: heroFadeUp 0.7s 0.3s ease both; }
+    .hero-stats   { animation: heroFadeUp 0.7s 0.4s ease both; }
 
-/* ══════════════════════════════════
-   AUTH
-══════════════════════════════════ */
-#auth-screen {
-  min-height: 100svh;
-  display: flex; align-items: center; justify-content: center;
-  padding: 2rem 1.25rem;
-}
-.auth-box { width: 100%; max-width: 380px; animation: rise 0.5s ease both; }
+    .btn-cta {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 1rem 2rem; border-radius: 16px; border: none; cursor: pointer;
+      font-family: 'Syne', sans-serif; font-weight: 700; font-size: 1.05rem;
+      background: linear-gradient(135deg, #1d4ed8, #3b82f6 60%, #60a5fa);
+      color: #fff;
+      box-shadow: 0 6px 32px rgba(59,130,246,0.38), inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: all 0.2s;
+    }
+    .btn-cta:hover { transform: translateY(-3px); box-shadow: 0 12px 48px rgba(59,130,246,0.55); }
+    .btn-cta:active { transform: translateY(0); }
 
-.auth-brand { text-align: center; margin-bottom: 2.5rem; }
-.auth-logo {
-  display: inline-flex; align-items: center; justify-content: center;
-  width: 52px; height: 52px; border-radius: 14px;
-  background: var(--gold); margin-bottom: 1rem;
-}
-.auth-logo svg { display: block; }
-.auth-brand h1 { font-family: var(--ff-s); font-size: 1.75rem; font-weight: 700; color: var(--white); letter-spacing: -0.02em; line-height: 1.1; }
-.auth-brand h1 em { color: var(--gold); font-style: normal; }
-.auth-brand p  { font-size: 0.68rem; color: var(--muted); margin-top: 0.35rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .btn-cta-ghost {
+      display: inline-flex; align-items: center; gap: 0.6rem;
+      padding: 1rem 1.75rem; border-radius: 16px; cursor: pointer;
+      font-family: 'Syne', sans-serif; font-weight: 600; font-size: 1rem;
+      background: transparent;
+      border: 1.5px solid var(--border-hi);
+      color: var(--text-1);
+      transition: all 0.2s;
+    }
+    .btn-cta-ghost:hover { background: rgba(59,130,246,0.08); border-color: rgba(59,130,246,0.5); }
 
-.auth-card { background: var(--ink-2); border: 1px solid var(--line-hi); border-radius: 18px; padding: 2rem; }
+    .stat-pill {
+      display: flex; align-items: center; gap: 0.75rem;
+      padding: 0.85rem 1.25rem; border-radius: 14px;
+      background: rgba(8,18,42,0.8);
+      border: 1px solid var(--border);
+      backdrop-filter: blur(12px);
+    }
 
-.auth-tabs {
-  display: grid; grid-template-columns: 1fr 1fr;
-  background: var(--ink); border-radius: 8px; padding: 3px; margin-bottom: 1.75rem; gap: 3px;
-}
-.auth-tab {
-  padding: 0.55rem; text-align: center; border-radius: 6px; border: none; background: none;
-  font-size: 0.78rem; font-family: var(--ff-m); color: var(--muted); cursor: pointer; transition: all 0.15s;
-}
-.auth-tab.active { background: var(--ink-3); color: var(--gold); }
+    /* feature cards on hero */
+    .feature-card {
+      padding: 1.5rem;
+      background: rgba(8,18,42,0.6);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      backdrop-filter: blur(20px);
+      transition: border-color 0.2s, transform 0.25s;
+    }
+    .feature-card:hover { border-color: var(--border-hi); transform: translateY(-4px); }
 
-.auth-fields { display: flex; flex-direction: column; gap: 1rem; }
-.auth-note   { text-align: center; font-size: 0.63rem; color: var(--muted-2); margin-top: 1rem; }
+    /* ── Price range cards ── */
+    .range-card {
+      border-radius: 18px;
+      padding: 1.25rem;
+      border: 1px solid;
+      transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+    }
+    .range-card:hover { transform: translateY(-4px); }
+    .range-card.floor {
+      background: linear-gradient(135deg, rgba(244,63,94,0.13), rgba(244,63,94,0.04));
+      border-color: rgba(244,63,94,0.28);
+    }
+    .range-card.recommended {
+      background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(59,130,246,0.06));
+      border-color: rgba(59,130,246,0.45);
+      box-shadow: 0 6px 36px rgba(59,130,246,0.14);
+    }
+    .range-card.premium {
+      background: linear-gradient(135deg, rgba(16,185,129,0.15), rgba(16,185,129,0.04));
+      border-color: rgba(16,185,129,0.32);
+    }
 
-/* ══════════════════════════════════
-   TOPBAR
-══════════════════════════════════ */
-.topbar {
-  position: sticky; top: 0; z-index: 50; height: 56px;
-  background: rgba(13,13,13,0.94);
-  backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--line);
-  display: flex; align-items: center;
-}
-.topbar-in {
-  max-width: 1200px; margin: 0 auto; width: 100%; padding: 0 1.5rem;
-  display: flex; align-items: center; gap: 1rem;
-}
+    @keyframes cardPop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.05); }
+      70%  { transform: scale(0.98); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: cardPop 0.35s cubic-bezier(.34,1.56,.64,1); }
 
-.brand { display: flex; align-items: center; gap: 0.65rem; flex-shrink: 0; }
-.brand-icon {
-  width: 30px; height: 30px; border-radius: 8px; background: var(--gold);
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.brand-text { font-family: var(--ff-s); font-size: 1.15rem; font-weight: 700; color: var(--white); letter-spacing: -0.01em; }
-.brand-text em { color: var(--gold); font-style: normal; }
-.brand-badge {
-  font-size: 0.58rem; font-family: var(--ff-m); letter-spacing: 0.07em;
-  padding: 0.2rem 0.45rem; border-radius: 4px;
-  background: var(--gold-dim); color: var(--gold-2); border: 1px solid rgba(201,168,76,0.2);
-}
+    /* ── Slider ── */
+    .profit-slider {
+      -webkit-appearance: none; appearance: none;
+      height: 8px; border-radius: 999px; outline: none; cursor: pointer;
+      width: 100%;
+      background: linear-gradient(to right, var(--blue) var(--pct, 50%), rgba(56,139,253,0.15) var(--pct, 50%));
+      transition: background 0.08s;
+    }
+    .profit-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 26px; height: 26px; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.25), 0 4px 14px rgba(59,130,246,0.45);
+      cursor: grab;
+      transition: box-shadow 0.2s, transform 0.15s;
+    }
+    .profit-slider::-webkit-slider-thumb:active {
+      cursor: grabbing; transform: scale(1.18);
+      box-shadow: 0 0 0 8px rgba(59,130,246,0.2), 0 4px 18px rgba(59,130,246,0.5);
+    }
+    .profit-slider::-moz-range-thumb {
+      width: 26px; height: 26px; border: none; border-radius: 50%;
+      background: linear-gradient(135deg, #3b82f6, #60a5fa);
+      box-shadow: 0 0 0 4px rgba(59,130,246,0.25); cursor: grab;
+    }
 
-.topbar-nav { display: flex; gap: 2px; margin-left: 1.5rem; }
-.tnav {
-  padding: 0.4rem 0.8rem; border-radius: 7px; border: none; background: none;
-  font-size: 0.75rem; font-family: var(--ff-m); color: var(--muted); cursor: pointer; transition: all 0.15s;
-}
-.tnav.active { background: var(--gold-dim); color: var(--gold); }
-.tnav:hover:not(.active) { color: var(--cream); background: rgba(255,255,255,0.04); }
+    .slider-zones {
+      height: 6px; border-radius: 999px; overflow: hidden;
+      background: linear-gradient(to right,
+        rgba(244,63,94,0.55) 0%,
+        rgba(245,158,11,0.55) 33%,
+        rgba(59,130,246,0.7) 60%,
+        rgba(16,185,129,0.75) 100%
+      );
+    }
 
-.topbar-right { margin-left: auto; display: flex; align-items: center; gap: 0.75rem; }
-.topbar-email { font-size: 0.7rem; color: var(--muted-2); display: none; }
-@media(min-width:600px) { .topbar-email { display: block; } }
+    /* ── Nav tab ── */
+    .nav-tab {
+      display: flex; align-items: center; gap: 0.5rem;
+      padding: 0.6rem 1.1rem; border-radius: 11px;
+      font-size: 0.82rem; font-weight: 500; color: var(--text-2);
+      cursor: pointer; transition: all 0.2s;
+      border: 1px solid transparent; min-height: 42px;
+    }
+    .nav-tab.active {
+      background: rgba(59,130,246,0.15); color: #93c5fd;
+      border-color: rgba(59,130,246,0.3);
+    }
+    .nav-tab:hover:not(.active) { background: rgba(255,255,255,0.04); color: var(--text-1); }
 
-/* ══════════════════════════════════
-   APP LAYOUT
-══════════════════════════════════ */
-.app-body { max-width: 1200px; margin: 0 auto; width: 100%; padding: 2rem 1.25rem 4rem; }
-.section { display: none; }
-.section.active { display: block; }
+    /* ── Auth tabs ── */
+    .auth-tab {
+      flex: 1; padding: 0.6rem; border-radius: 9px;
+      font-size: 0.875rem; font-weight: 500; text-align: center;
+      cursor: pointer; transition: all 0.2s; color: var(--text-2);
+      background: none; border: none;
+    }
+    .auth-tab.active { background: rgba(59,130,246,0.2); color: #93c5fd; }
 
-/* Two-column on desktop */
-.calc-layout { display: flex; flex-direction: column; gap: 1.75rem; }
-@media(min-width: 860px) {
-  .calc-layout { flex-direction: row; align-items: flex-start; gap: 2.5rem; }
-  .calc-sidebar { width: 290px; flex-shrink: 0; position: sticky; top: 76px; }
-  .calc-main    { flex: 1; min-width: 0; }
-}
+    /* ── Sections ── */
+    .section { display: none; }
+    .section.active { display: block; }
 
-/* ══════════════════════════════════
-   CARDS / PANELS
-══════════════════════════════════ */
-.card {
-  background: var(--ink-2); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
-}
-.card + .card { margin-top: 1rem; }
-.card-head {
-  padding: 1.1rem 1.35rem; border-bottom: 1px solid var(--line);
-  display: flex; align-items: center; justify-content: space-between;
-}
-.card-head h2 { font-family: var(--ff-s); font-size: 0.95rem; font-weight: 700; color: var(--white); }
-.card-head p  { font-size: 0.68rem; color: var(--muted); margin-top: 0.15rem; }
-.card-body { padding: 1.1rem 1.35rem; display: flex; flex-direction: column; gap: 1rem; }
-.card-badge {
-  font-size: 0.6rem; font-family: var(--ff-m); letter-spacing: 0.07em;
-  padding: 0.2rem 0.55rem; border-radius: 4px;
-  background: var(--gold-dim); color: var(--gold); border: 1px solid rgba(201,168,76,0.2);
-  white-space: nowrap;
-}
+    /* ── Toast ── */
+    #toast {
+      position: fixed; bottom: 1.5rem; left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      z-index: 9999; padding: 0.75rem 1.5rem; border-radius: 12px;
+      font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+      transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
+      opacity: 0; pointer-events: none; font-family: 'DM Mono', monospace;
+    }
+    #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
+    #toast.success { background: rgba(16,185,129,0.2); border: 1px solid rgba(16,185,129,0.4); color: #34d399; }
+    #toast.error   { background: rgba(244,63,94,0.2);  border: 1px solid rgba(244,63,94,0.4);  color: #fb7185; }
+    #toast.info    { background: rgba(59,130,246,0.2); border: 1px solid rgba(59,130,246,0.4); color: #93c5fd; }
 
-.g2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
-.g3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.85rem; }
-.irow { display: flex; flex-direction: column; gap: 0.4rem; }
+    /* ── Spinner ── */
+    .spin { animation: spin360 0.7s linear infinite; }
+    @keyframes spin360 { to { transform: rotate(360deg); } }
 
-/* ══════════════════════════════════
-   PRICE ANCHORS
-══════════════════════════════════ */
-.anchor-strip {
-  display: grid; grid-template-columns: repeat(3, 1fr);
-  background: var(--ink-2); border: 1px solid var(--line); border-radius: 16px; overflow: hidden;
-}
-.anc {
-  padding: 1.35rem 1rem; border-right: 1px solid var(--line);
-  transition: background 0.15s; cursor: default;
-}
-.anc:last-child { border-right: none; }
-.anc:hover { background: var(--ink-3); }
+    /* ── Gradient text ── */
+    .text-g-blue  { background: linear-gradient(135deg, #93c5fd, #3b82f6); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .text-g-cyan  { background: linear-gradient(135deg, #22d3ee, #06b6d4); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .text-g-green { background: linear-gradient(135deg, #10b981, #34d399); -webkit-background-clip: text; background-clip: text; color: transparent; }
+    .text-g-hero  { background: linear-gradient(135deg, #3b82f6, #22d3ee, #10b981); -webkit-background-clip: text; background-clip: text; color: transparent; }
 
-.anc-lbl { font-size: 0.59rem; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.5rem; }
-.anc-val { font-family: var(--ff-s); font-weight: 700; font-size: 1.55rem; line-height: 1; color: var(--white); }
-.anc-sub { font-size: 0.62rem; color: var(--muted-2); margin-top: 0.4rem; }
+    /* ── Chart ── */
+    .chart-wrap { position: relative; height: 220px; }
+    @media(min-width:1024px) { .chart-wrap { height: 260px; } }
 
-.anc.floor   .anc-val { color: var(--red); }
-.anc.target  .anc-val { color: var(--gold-2); }
-.anc.premium .anc-val { color: var(--green); }
+    /* ── YT card ── */
+    .yt-cta {
+      background: linear-gradient(135deg, rgba(153,27,27,0.14), rgba(239,68,68,0.05));
+      border: 1px solid rgba(239,68,68,0.2);
+      border-radius: 18px;
+      transition: border-color 0.2s, background 0.2s;
+    }
+    .yt-cta:hover { border-color: rgba(239,68,68,0.45); }
 
-@keyframes pulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.04)} }
-.pop { animation: pulse 0.28s ease; }
+    /* ── Formula pill ── */
+    .formula-pill {
+      background: rgba(4,9,26,0.8);
+      border: 1px solid rgba(59,130,246,0.16);
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      font-size: 0.75rem;
+      color: var(--text-2); line-height: 1.7;
+    }
 
-@media(max-width: 420px) {
-  .anchor-strip { grid-template-columns: 1fr; }
-  .anc { border-right: none; border-bottom: 1px solid var(--line); }
-  .anc:last-child { border-bottom: none; }
-}
+    /* ── Labels ── */
+    .field-label {
+      font-size: 0.68rem; font-weight: 500;
+      letter-spacing: 0.07em; text-transform: uppercase;
+      color: var(--text-2); margin-bottom: 0.45rem; display: block;
+    }
+    .badge {
+      display: inline-flex; align-items: center;
+      padding: 0.2rem 0.6rem; border-radius: 999px;
+      font-size: 0.67rem; font-weight: 600; letter-spacing: 0.04em;
+    }
 
-/* ══════════════════════════════════
-   PRICE EXPLORER
-══════════════════════════════════ */
-.explorer {
-  background: var(--ink-2); border: 1px solid var(--line); border-radius: 16px; padding: 1.5rem;
-}
-.exp-top {
-  display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 1.35rem;
-}
-.exp-top h2 { font-family: var(--ff-s); font-size: 0.95rem; font-weight: 700; color: var(--white); }
-.exp-top p  { font-size: 0.68rem; color: var(--muted); margin-top: 0.15rem; }
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: rgba(59,130,246,0.18); border-radius: 4px; }
 
-.live-val   { font-family: var(--ff-s); font-size: 1.75rem; font-weight: 700; color: var(--white); line-height: 1; text-align: right; }
-.live-lbl   { font-size: 0.6rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; text-align: right; margin-top: 0.15rem; }
+    /* ── Animations ── */
+    @keyframes heroFadeUp {
+      from { opacity: 0; transform: translateY(22px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+    .fade-up   { animation: fadeUp 0.45s ease both; }
+    .du-1 { animation-delay: 0.06s; }
+    .du-2 { animation-delay: 0.13s; }
+    .du-3 { animation-delay: 0.20s; }
+    .du-4 { animation-delay: 0.27s; }
+    .du-5 { animation-delay: 0.34s; }
 
-/* gradient zone bar */
-.zone-bar {
-  height: 3px; border-radius: 999px; margin-bottom: 1rem;
-  background: linear-gradient(to right, rgba(201,97,76,.6) 0%, rgba(201,168,76,.7) 42%, rgba(76,175,130,.8) 100%);
-}
+    /* ── Divider line ── */
+    .divider { height: 1px; background: var(--border); }
 
-/* range slider */
-.rng {
-  -webkit-appearance: none; appearance: none;
-  width: 100%; height: 5px; border-radius: 999px; outline: none; cursor: pointer;
-  background: linear-gradient(to right, var(--gold) var(--pct,50%), var(--muted-2) var(--pct,50%));
-  transition: background 0.05s; display: block;
-}
-.rng::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 22px; height: 22px; border-radius: 50%; background: var(--white);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.35), 0 3px 10px rgba(0,0,0,0.5);
-  cursor: grab; transition: transform 0.15s;
-}
-.rng::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.2); }
-.rng::-moz-range-thumb {
-  width: 22px; height: 22px; border: none; border-radius: 50%; background: var(--white);
-  box-shadow: 0 0 0 3px rgba(201,168,76,0.35); cursor: grab;
-}
+    /* ── Section heading ── */
+    .section-heading { font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700; color: #fff; }
 
-.slider-lbls {
-  display: flex; justify-content: space-between;
-  font-size: 0.62rem; color: var(--muted-2); margin-top: 0.5rem;
-}
+    /* ── Icon chip ── */
+    .icon-chip {
+      width: 30px; height: 30px; border-radius: 9px;
+      display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+    }
 
-/* live stat boxes */
-.stat-grid {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 1px;
-  background: var(--line); border-radius: 10px; overflow: hidden; margin-top: 1.35rem;
-}
-.stat-box { background: var(--ink-3); padding: 1rem 1.1rem; }
-.stat-box-lbl { font-size: 0.59rem; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); margin-bottom: 0.35rem; }
-.stat-box-val { font-family: var(--ff-s); font-size: 1.4rem; font-weight: 700; }
+    /* ── Calculator two-column layout ── */
+    @media(min-width: 1024px) {
+      .calc-grid {
+        display: grid;
+        grid-template-columns: 340px 1fr;
+        gap: 1.75rem;
+        align-items: start;
+      }
+      .calc-sidebar {
+        position: sticky; top: 120px;
+      }
+    }
 
-/* ══════════════════════════════════
-   CHART
-══════════════════════════════════ */
-.chart-card {
-  background: var(--ink-2); border: 1px solid var(--line); border-radius: 16px; padding: 1.5rem;
-}
-.chart-card h2 { font-family: var(--ff-s); font-size: 0.95rem; font-weight: 700; color: var(--white); }
-.chart-card p  { font-size: 0.68rem; color: var(--muted); margin-top: 0.15rem; margin-bottom: 1.25rem; }
-.chart-wrap { position: relative; height: 200px; }
-@media(min-width:860px) { .chart-wrap { height: 230px; } }
+    /* ── Safe area ── */
+    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
 
-.chart-leg { display: flex; gap: 1.25rem; margin-top: 1rem; }
-.chart-leg span { display: flex; align-items: center; gap: 0.4rem; font-size: 0.63rem; color: var(--muted); }
-.leg-solid { display: inline-block; width: 16px; height: 2px; border-radius: 1px; background: var(--gold); }
-.leg-dash  { display: inline-block; width: 16px; border-top: 1.5px dashed rgba(201,97,76,0.7); }
-
-/* ══════════════════════════════════
-   FORMULA NOTE
-══════════════════════════════════ */
-.formula {
-  background: var(--ink-3); border-radius: 10px; padding: 0.9rem 1.1rem;
-  font-size: 0.7rem; color: var(--muted); line-height: 1.9;
-}
-.formula strong { color: var(--cream); font-weight: 400; }
-
-/* ══════════════════════════════════
-   SETTINGS
-══════════════════════════════════ */
-.settings-wrap { max-width: 580px; display: flex; flex-direction: column; gap: 1.25rem; }
-
-.hr  { height: 1px; background: var(--line); }
-
-.acc-row { display: flex; align-items: center; gap: 0.85rem; padding: 0.85rem; background: var(--ink-3); border-radius: 10px; }
-.avatar {
-  width: 34px; height: 34px; border-radius: 50%;
-  background: var(--gold); display: flex; align-items: center; justify-content: center;
-  font-family: var(--ff-s); font-weight: 700; font-size: 0.9rem; color: var(--ink); flex-shrink: 0;
-}
-.acc-email { font-size: 0.85rem; color: var(--white); }
-.acc-sub   { font-size: 0.63rem; color: var(--muted); margin-top: 0.1rem; }
-
-.math-note {
-  background: var(--ink-3); border-radius: 10px; padding: 1rem 1.1rem;
-  font-size: 0.72rem; color: var(--muted); line-height: 1.9;
-}
-.math-note strong { color: var(--cream); font-weight: 500; }
-
-/* ══════════════════════════════════
-   YOUTUBE CTA
-══════════════════════════════════ */
-.yt-cta {
-  display: flex; align-items: center; gap: 0.85rem;
-  padding: 1rem 1.1rem;
-  background: var(--ink-2); border: 1px solid var(--line);
-  border-radius: 14px; text-decoration: none;
-  transition: border-color 0.15s;
-}
-.yt-cta:hover { border-color: rgba(220,38,38,0.35); }
-.yt-icon {
-  width: 34px; height: 34px; border-radius: 8px; background: #dc2626;
-  display: flex; align-items: center; justify-content: center; flex-shrink: 0;
-}
-.yt-title { font-size: 0.82rem; color: var(--white); font-weight: 500; }
-.yt-sub   { font-size: 0.64rem; color: var(--muted); margin-top: 0.1rem; }
-
-/* ══════════════════════════════════
-   TOAST
-══════════════════════════════════ */
-#toast {
-  position: fixed; bottom: 1.5rem; left: 50%;
-  transform: translateX(-50%) translateY(70px);
-  z-index: 9999; padding: 0.65rem 1.25rem; border-radius: 9px;
-  font-size: 0.78rem; font-family: var(--ff-m); white-space: nowrap; pointer-events: none;
-  opacity: 0; transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.25s;
-}
-#toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-#toast.success { background: rgba(76,175,130,0.15); border: 1px solid rgba(76,175,130,0.3); color: var(--green); }
-#toast.error   { background: rgba(201,97,76,0.15);  border: 1px solid rgba(201,97,76,0.3);  color: var(--red); }
-#toast.info    { background: rgba(201,168,76,0.12); border: 1px solid rgba(201,168,76,0.25); color: var(--gold-2); }
-
-/* ══════════════════════════════════
-   SPINNER
-══════════════════════════════════ */
-.spin { animation: s360 0.7s linear infinite; }
-@keyframes s360 { to { transform: rotate(360deg); } }
-
-/* ══════════════════════════════════
-   ANIMATIONS
-══════════════════════════════════ */
-@keyframes rise { from { opacity:0; transform:translateY(16px); } to { opacity:1; transform:translateY(0); } }
-.r0 { animation: rise 0.4s ease both; }
-.r1 { animation: rise 0.4s 0.05s ease both; }
-.r2 { animation: rise 0.4s 0.10s ease both; }
-.r3 { animation: rise 0.4s 0.15s ease both; }
-.r4 { animation: rise 0.4s 0.20s ease both; }
-.r5 { animation: rise 0.4s 0.25s ease both; }
-
-/* ══════════════════════════════════
-   MOBILE BOTTOM NAV
-══════════════════════════════════ */
-.bot-nav {
-  display: flex; position: fixed; bottom: 0; left: 0; right: 0; z-index: 40;
-  background: rgba(13,13,13,0.96); backdrop-filter: blur(20px);
-  border-top: 1px solid var(--line);
-  padding: 0.5rem 1rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
-}
-.bot-btn {
-  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 0.3rem;
-  padding: 0.45rem; font-size: 0.59rem; letter-spacing: 0.07em; text-transform: uppercase;
-  color: var(--muted); cursor: pointer; border: none; background: none; border-radius: 8px; transition: color 0.15s;
-}
-.bot-btn.active { color: var(--gold); }
-
-@media(min-width:640px) {
-  .bot-nav    { display: none; }
-  .topbar-nav { display: flex; }
-}
-@media(max-width:639px) {
-  .topbar-nav { display: none; }
-  .app-body   { padding-bottom: 5.5rem; }
-}
+    /* ── Scrollable range cards on tiny screens ── */
+    @media(max-width: 480px) {
+      .range-cards-wrap {
+        display: flex; gap: 0.6rem; overflow-x: auto;
+        scrollbar-width: none; -ms-overflow-style: none;
+        padding-bottom: 4px;
+      }
+      .range-cards-wrap::-webkit-scrollbar { display: none; }
+      .range-card { min-width: 130px; flex-shrink: 0; }
+    }
   </style>
 </head>
 <body>
 
+<!-- Background -->
+<div class="bg-mesh"></div>
+<div class="glow-orb glow-orb-1"></div>
+<div class="glow-orb glow-orb-2"></div>
+
+<!-- Toast -->
 <div id="toast"></div>
 
-<!-- ══════════════════════════
-     AUTH
-══════════════════════════ -->
-<div id="auth-screen" class="layer">
-  <div class="auth-box">
+<!-- ══════════════════════════════════
+     AUTH SCREEN
+══════════════════════════════════ -->
+<div id="auth-screen" class="relative z-10">
 
-    <div class="auth-brand">
-      <div class="auth-logo">
-        <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-          <polyline points="17 6 23 6 23 12"/>
-        </svg>
-      </div>
-      <h1>Grow Storeomall <em>AI</em></h1>
-      <p>Dynamic Range Engine · v2</p>
-    </div>
+  <!-- ── HERO SECTION ── -->
+  <section class="min-h-screen flex flex-col">
 
-    <div class="auth-card">
-      <div class="auth-tabs">
-        <button id="atab-login"  onclick="switchAuthTab('login')"  class="auth-tab active">Sign in</button>
-        <button id="atab-signup" onclick="switchAuthTab('signup')" class="auth-tab">Create account</button>
-      </div>
-
-      <div class="auth-fields">
-        <div>
-          <label class="lbl" for="a-email">Email</label>
-          <input id="a-email" type="email" placeholder="you@example.com" class="field" autocomplete="email"/>
+    <!-- Minimal nav on hero -->
+    <nav class="w-full px-6 py-5 flex items-center justify-between max-w-7xl mx-auto">
+      <div class="flex items-center gap-2.5">
+        <div class="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
+          style="background: linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow: 0 4px 16px rgba(59,130,246,0.4)">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+          </svg>
         </div>
-        <div>
-          <label class="lbl" for="a-pass">Password</label>
-          <input id="a-pass" type="password" placeholder="••••••••" class="field" autocomplete="current-password"
-            onkeydown="if(event.key==='Enter') handleAuth()"/>
+        <span class="font-display font-bold text-lg text-white">ProfitPilot <span class="text-g-blue">AI</span></span>
+      </div>
+      <button onclick="document.getElementById('calculator-anchor').scrollIntoView({behavior:'smooth'})"
+        class="btn-ghost text-sm px-4 py-2.5 min-h-0">Sign In / Start Free</button>
+    </nav>
+
+    <!-- Hero content -->
+    <div class="flex-1 flex flex-col items-center justify-center text-center px-5 pb-16 pt-8">
+      <div class="hero-badge mb-6">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#93c5fd" stroke-width="2.5"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/></svg>
+        Strategic Pricing Engine · Built by a Math Science Student
+      </div>
+
+      <h1 class="hero-title mb-6">
+        Price with<br/>
+        <span class="accent">Mathematical Precision.</span><br/>
+        Scale with Confidence.
+      </h1>
+
+      <p class="hero-sub mb-10">
+        The ultimate strategic pricing engine for e-commerce entrepreneurs.
+        Calculate floor, target, and premium price points using real math — and watch your profits scale.
+      </p>
+
+      <div class="hero-actions flex flex-wrap gap-3 justify-center mb-16">
+        <button onclick="document.getElementById('calculator-anchor').scrollIntoView({behavior:'smooth'})"
+          class="btn-cta">
+          Get Started Free
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </button>
+        <a href="https://www.youtube.com" target="_blank" class="btn-cta-ghost">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor" style="color:#f87171"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+          Watch Strategy Insights
+        </a>
+      </div>
+
+      <!-- Stats row -->
+      <div class="hero-stats flex flex-wrap gap-3 justify-center mb-16">
+        <div class="stat-pill">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(59,130,246,0.15)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+          </div>
+          <div>
+            <div class="text-white font-display font-bold text-sm">3 Price Points</div>
+            <div class="text-xs" style="color:var(--text-3)">Floor · Target · Premium</div>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(16,185,129,0.12)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+          </div>
+          <div>
+            <div class="text-white font-display font-bold text-sm">Live Profit Curve</div>
+            <div class="text-xs" style="color:var(--text-3)">Interactive chart</div>
+          </div>
+        </div>
+        <div class="stat-pill">
+          <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(34,211,238,0.1)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22d3ee" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          </div>
+          <div>
+            <div class="text-white font-display font-bold text-sm">10 Currencies</div>
+            <div class="text-xs" style="color:var(--text-3)">Global e-commerce</div>
+          </div>
         </div>
       </div>
 
-      <button id="a-btn" onclick="handleAuth()" class="btn btn-gold" style="margin-top:1.25rem;">
-        <svg id="a-spin" class="hidden spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-        <span id="a-btn-text">Sign in</span>
-      </button>
-
-      <p class="auth-note">Secured by Supabase Auth</p>
+      <!-- Feature cards -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-3xl w-full text-left">
+        <div class="feature-card">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style="background:rgba(244,63,94,0.13); border:1px solid rgba(244,63,94,0.25)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#f87171" stroke-width="2.5" stroke-linecap="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+          </div>
+          <div class="font-display font-bold text-sm text-white mb-1">Break-even Floor</div>
+          <div class="text-xs leading-relaxed" style="color:var(--text-2)">Never sell at a loss. The math-exact floor price absorbs all your costs.</div>
+        </div>
+        <div class="feature-card" style="border-color: rgba(59,130,246,0.28);">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.3)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <div class="font-display font-bold text-sm text-white mb-1">Target Margin Price</div>
+          <div class="text-xs leading-relaxed" style="color:var(--text-2)">Hit your exact margin goal. Tax-adjusted and scientifically derived.</div>
+        </div>
+        <div class="feature-card">
+          <div class="w-9 h-9 rounded-xl flex items-center justify-center mb-3" style="background:rgba(16,185,129,0.12); border:1px solid rgba(16,185,129,0.25)">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div class="font-display font-bold text-sm text-white mb-1">Premium Buffer (+15%)</div>
+          <div class="text-xs leading-relaxed" style="color:var(--text-2)">Absorb refunds, chargebacks, and surprise costs without breaking profit.</div>
+        </div>
+      </div>
     </div>
+  </section>
 
-    <a href="https://www.youtube.com" target="_blank" class="yt-cta" style="margin-top:1rem;">
-      <div class="yt-icon">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-      </div>
-      <div style="flex:1;">
-        <div class="yt-title">Subscribe for AI Strategy Insights</div>
-        <div class="yt-sub">Pricing, growth &amp; global e-commerce</div>
-      </div>
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-    </a>
+  <!-- ── SCROLL ANCHOR + AUTH ── -->
+  <div id="calculator-anchor" class="min-h-screen flex items-center justify-center px-4 py-16">
+    <div class="w-full max-w-sm">
 
+      <!-- Logo -->
+      <div class="text-center mb-8">
+        <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
+          style="background: linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow: 0 8px 36px rgba(59,130,246,0.42)">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+          </svg>
+        </div>
+        <h2 class="font-display font-bold text-2xl text-white">ProfitPilot <span class="text-g-blue">AI</span></h2>
+        <p class="text-sm mt-1" style="color:var(--text-2)">Sign in to access your pricing dashboard</p>
+      </div>
+
+      <!-- Auth card -->
+      <div class="glass glass-hi p-6">
+        <div class="flex bg-black/40 rounded-xl p-1 mb-5 gap-1">
+          <button id="atab-login"  onclick="switchAuthTab('login')"  class="auth-tab active">Sign In</button>
+          <button id="atab-signup" onclick="switchAuthTab('signup')" class="auth-tab">Sign Up</button>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="field-label">Email Address</label>
+            <input id="a-email" type="email" placeholder="you@example.com" class="neon-plain" autocomplete="email"/>
+          </div>
+          <div>
+            <label class="field-label">Password</label>
+            <input id="a-pass" type="password" placeholder="••••••••••" class="neon-plain" autocomplete="current-password"
+              onkeydown="if(event.key==='Enter') handleAuth()"/>
+          </div>
+        </div>
+
+        <button id="a-btn" onclick="handleAuth()" class="btn-primary mt-5 flex items-center justify-center gap-2">
+          <svg id="a-spin" class="hidden spin" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+          <span id="a-btn-text">Sign In</span>
+        </button>
+
+        <p class="text-center text-xs mt-4" style="color:var(--text-3); font-family:'DM Mono',monospace;">Secured by Supabase Auth</p>
+      </div>
+
+      <!-- YouTube CTA -->
+      <a href="https://www.youtube.com" target="_blank"
+        class="yt-cta mt-4 flex items-center gap-3 p-4 cursor-pointer group">
+        <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+        </div>
+        <div class="flex-1 min-w-0">
+          <p class="text-sm font-display font-semibold text-white">Subscribe for AI Strategy Insights</p>
+          <p class="text-xs mt-0.5 truncate" style="color:var(--text-3)">Pricing psychology, global growth &amp; e-commerce AI</p>
+        </div>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" style="color:#f87171"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      </a>
+    </div>
   </div>
 </div>
 
-<!-- ══════════════════════════
-     APP
-══════════════════════════ -->
-<div id="app-screen" class="hidden layer" style="display:flex;flex-direction:column;min-height:100svh;">
+<!-- ══════════════════════════════════
+     APP SCREEN
+══════════════════════════════════ -->
+<div id="app-screen" class="hidden relative z-10 flex flex-col min-h-screen">
 
-  <!-- Topbar -->
-  <header class="topbar layer">
-    <div class="topbar-in">
-      <div class="brand">
-        <div class="brand-icon">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d0d0d" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/>
-            <polyline points="17 6 23 6 23 12"/>
-          </svg>
+  <!-- Sticky Topbar -->
+  <header class="sticky top-0 z-50"
+    style="background: rgba(4,9,26,0.88); backdrop-filter: blur(24px); border-bottom: 1px solid var(--border);">
+    <div class="max-w-7xl mx-auto px-5 h-14 flex items-center justify-between gap-4">
+
+      <!-- Brand -->
+      <div class="flex items-center gap-2.5 flex-shrink-0">
+        <div class="w-8 h-8 rounded-xl flex items-center justify-center"
+          style="background: linear-gradient(135deg,#1d4ed8,#3b82f6); box-shadow: 0 4px 14px rgba(59,130,246,0.38)">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
         </div>
-        <span class="brand-text">Grow Storeomall <em>AI</em></span>
-        <span class="brand-badge">v2</span>
+        <span class="font-display font-bold text-base text-white">ProfitPilot <span class="text-g-blue">AI</span></span>
+        <span class="badge hidden sm:inline-flex" style="background:rgba(59,130,246,0.14); border:1px solid rgba(59,130,246,0.28); color:#93c5fd;">v2</span>
       </div>
 
-      <nav class="topbar-nav">
-        <button onclick="showSection('calculator')" id="ntab-calculator" class="tnav active">Calculator</button>
-        <button onclick="showSection('settings')"   id="ntab-settings"   class="tnav">Settings</button>
+      <!-- Desktop nav -->
+      <nav class="hidden sm:flex gap-1">
+        <button onclick="showSection('calculator')" id="ntab-calculator" class="nav-tab active">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/></svg>
+          Calculator
+        </button>
+        <button onclick="showSection('settings')" id="ntab-settings" class="nav-tab">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
       </nav>
 
-      <div class="topbar-right">
-        <span id="nav-email" class="topbar-email"></span>
-        <button onclick="signOut()" class="btn btn-ghost">Sign out</button>
+      <!-- Right side -->
+      <div class="flex items-center gap-2 ml-auto">
+        <span id="nav-email" class="text-xs hidden md:block" style="color:var(--text-3)"></span>
+        <button onclick="signOut()" class="btn-ghost text-xs px-3 py-2 min-h-0 flex items-center gap-1.5">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          <span class="hidden sm:inline">Sign Out</span>
+        </button>
       </div>
+    </div>
+
+    <!-- Mobile section tabs -->
+    <div class="sm:hidden px-4 pb-2 flex gap-1">
+      <button onclick="showSection('calculator')" id="mntab-calculator" class="nav-tab active flex-1 justify-center text-xs">
+        Calculator
+      </button>
+      <button onclick="showSection('settings')" id="mntab-settings" class="nav-tab flex-1 justify-center text-xs">
+        Settings
+      </button>
     </div>
   </header>
 
-  <!-- Main -->
-  <main class="app-body layer" style="flex:1;">
+  <!-- Main content -->
+  <main class="max-w-7xl mx-auto w-full px-4 lg:px-6 py-6 flex-1 safe-bottom" style="padding-bottom:2.5rem;">
 
-    <!-- ══ CALCULATOR ══ -->
+    <!-- ══════════ CALCULATOR SECTION ══════════ -->
     <div id="section-calculator" class="section active">
-      <div class="calc-layout">
+      <div class="calc-grid">
 
-        <!-- Sidebar -->
-        <aside class="calc-sidebar">
+        <!-- ── LEFT SIDEBAR: Inputs ── -->
+        <div class="calc-sidebar space-y-4">
 
           <!-- Product Inputs -->
-          <div class="card r1">
-            <div class="card-head">
+          <div class="glass p-5 fade-up du-1">
+            <div class="flex items-center gap-2 mb-4">
+              <div class="icon-chip" style="background:rgba(59,130,246,0.14); border:1px solid rgba(59,130,246,0.28)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <h2 class="section-heading">Product Costs</h2>
+            </div>
+            <div class="space-y-3">
               <div>
-                <h2>Product costs</h2>
-                <p>What you pay per unit</p>
-              </div>
-            </div>
-            <div class="card-body">
-              <div class="irow">
-                <label class="lbl" for="inp-cost">Product cost</label>
-                <div class="fw"><span class="sym" id="sym-cost">$</span><input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculate()"/></div>
-              </div>
-              <div class="irow">
-                <label class="lbl" for="inp-ads">Ad spend / CPA</label>
-                <div class="fw"><span class="sym" id="sym-ads">$</span><input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculate()"/></div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Defaults -->
-          <div class="card r2">
-            <div class="card-head">
-              <div>
-                <h2>Defaults</h2>
-                <p>From your saved profile</p>
-              </div>
-              <span class="card-badge">Auto-loaded</span>
-            </div>
-            <div class="card-body">
-              <div class="g2">
-                <div class="irow">
-                  <label class="lbl" for="inp-tax">Tax</label>
-                  <div class="fw s"><input id="inp-tax" type="number" min="0" max="99" step="0.1" placeholder="0" class="field" oninput="calculate()"/><span class="sym">%</span></div>
-                </div>
-                <div class="irow">
-                  <label class="lbl" for="inp-margin">Margin</label>
-                  <div class="fw s"><input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="0" class="field" oninput="calculate()"/><span class="sym">%</span></div>
+                <label class="field-label">Product Cost</label>
+                <div class="relative">
+                  <span id="sym-cost" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-2)">$</span>
+                  <input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
                 </div>
               </div>
-              <div class="irow">
-                <label class="lbl" for="inp-ship">Shipping</label>
-                <div class="fw"><span class="sym" id="sym-ship">$</span><input id="inp-ship" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculate()"/></div>
+              <div>
+                <label class="field-label">Ads / Marketing (CPA)</label>
+                <div class="relative">
+                  <span id="sym-ads" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-2)">$</span>
+                  <input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
+                </div>
               </div>
             </div>
           </div>
 
-        </aside>
-
-        <!-- Main results -->
-        <div class="calc-main" style="display:flex;flex-direction:column;gap:1.25rem;">
-
-          <!-- Three anchors -->
-          <div class="anchor-strip r2">
-            <div class="anc floor">
-              <div class="anc-lbl">Floor</div>
-              <div id="val-floor" class="anc-val">—</div>
-              <div class="anc-sub">Break-even price</div>
+          <!-- Global Defaults override -->
+          <div class="glass p-5 fade-up du-2">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="icon-chip" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.22)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+                </div>
+                <h2 class="section-heading">Global Defaults</h2>
+              </div>
+              <span class="badge" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.25); color:#34d399; font-size:0.6rem;">Auto-loaded</span>
             </div>
-            <div class="anc target">
-              <div class="anc-lbl">Target</div>
-              <div id="val-rec" class="anc-val">—</div>
-              <div class="anc-sub">Hits your margin goal</div>
-            </div>
-            <div class="anc premium">
-              <div class="anc-lbl">Premium</div>
-              <div id="val-prem" class="anc-val">—</div>
-              <div class="anc-sub">+15% safety buffer</div>
+            <div class="grid grid-cols-3 gap-2.5">
+              <div>
+                <label class="field-label">Tax %</label>
+                <input id="inp-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-plain text-center" oninput="calculate()"/>
+              </div>
+              <div>
+                <label class="field-label">Shipping</label>
+                <div class="relative">
+                  <span id="sym-ship" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm" style="color:var(--text-2)">$</span>
+                  <input id="inp-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-input" style="padding-left:1.6rem" oninput="calculate()"/>
+                </div>
+              </div>
+              <div>
+                <label class="field-label">Margin %</label>
+                <input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-plain text-center" oninput="calculate()"/>
+              </div>
             </div>
           </div>
 
-          <!-- Price Explorer -->
-          <div class="explorer r3">
-            <div class="exp-top">
-              <div>
-                <h2>Price Explorer</h2>
-                <p>Drag to simulate any price point</p>
+          <!-- Formula -->
+          <div class="formula-pill fade-up du-3">
+            <span style="color:#60a5fa; font-weight:600;">Floor</span> = (Cost+Ads+Ship) ÷ (1−Tax)<br/>
+            <span style="color:#60a5fa; font-weight:600;">Target</span> = Total ÷ (1−Tax−Margin)<br/>
+            <span style="color:#34d399; font-weight:600;">Premium</span> = Target × 1.15
+          </div>
+
+        </div>
+
+        <!-- ── RIGHT MAIN: Results + Chart ── -->
+        <div class="space-y-4 mt-4 lg:mt-0">
+
+          <!-- Strategic Price Range — PROMINENT -->
+          <div class="glass glass-hi p-5 fade-up du-2"
+            style="background: linear-gradient(135deg, rgba(59,130,246,0.07) 0%, rgba(8,18,42,0.75) 100%);">
+            <div class="flex items-center gap-2 mb-5">
+              <div class="icon-chip" style="background:rgba(59,130,246,0.15); border:1px solid rgba(59,130,246,0.32)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
               </div>
-              <div>
-                <div id="slider-price-display" class="live-val">—</div>
-                <div class="live-lbl">Testing</div>
+              <h2 class="section-heading">Strategic Price Range</h2>
+              <span class="badge ml-auto" style="background:rgba(59,130,246,0.13); border:1px solid rgba(59,130,246,0.28); color:#93c5fd; font-size:0.6rem;">Live Calculation</span>
+            </div>
+
+            <!-- Three price cards -->
+            <div class="range-cards-wrap grid grid-cols-3 gap-3 mb-5" id="range-cards">
+              <div class="range-card floor text-center" id="card-floor">
+                <div class="flex items-center justify-center gap-1.5 mb-2">
+                  <div class="w-2 h-2 rounded-full" style="background:var(--rose)"></div>
+                  <span class="text-xs font-display font-bold uppercase tracking-wider" style="color:var(--rose)">Floor</span>
+                </div>
+                <p id="val-floor" class="font-display font-bold text-2xl text-white mt-1 leading-none">—</p>
+                <p class="text-xs mt-2" style="color:var(--text-3)">Break-even</p>
+              </div>
+              <div class="range-card recommended text-center" id="card-rec">
+                <div class="flex items-center justify-center gap-1.5 mb-2">
+                  <div class="w-2 h-2 rounded-full" style="background:var(--blue)"></div>
+                  <span class="text-xs font-display font-bold uppercase tracking-wider" style="color:#93c5fd">Target</span>
+                </div>
+                <p id="val-rec" class="font-display font-bold text-2xl text-white mt-1 leading-none">—</p>
+                <p class="text-xs mt-2" style="color:var(--text-3)">Recommended</p>
+              </div>
+              <div class="range-card premium text-center" id="card-prem">
+                <div class="flex items-center justify-center gap-1.5 mb-2">
+                  <div class="w-2 h-2 rounded-full" style="background:var(--emerald)"></div>
+                  <span class="text-xs font-display font-bold uppercase tracking-wider" style="color:#34d399">Premium</span>
+                </div>
+                <p id="val-prem" class="font-display font-bold text-2xl text-white mt-1 leading-none">—</p>
+                <p class="text-xs mt-2" style="color:var(--text-3)">+15% Buffer</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Profitability Curve Chart -->
+          <div class="glass p-5 fade-up du-3">
+            <div class="flex items-center gap-2 mb-1">
+              <div class="icon-chip" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.22)">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <h2 class="section-heading">Profitability Curve</h2>
+            </div>
+            <p class="text-xs mb-4 ml-10" style="color:var(--text-2)">Net profit across your full price range — updates instantly</p>
+            <div class="chart-wrap">
+              <canvas id="profit-chart"></canvas>
+            </div>
+            <div class="flex items-center gap-5 mt-3 text-xs" style="color:var(--text-2)">
+              <span class="flex items-center gap-1.5">
+                <span class="inline-block w-3 h-0.5 rounded" style="background:#3b82f6"></span> Net Profit
+              </span>
+              <span class="flex items-center gap-1.5">
+                <span class="inline-block w-3 h-0.5 rounded" style="background:rgba(244,63,94,0.6); border-top:1px dashed #f43f5e;"></span> Break-even
+              </span>
+            </div>
+          </div>
+
+          <!-- Interactive Price Slider -->
+          <div class="glass p-5 fade-up du-4">
+            <div class="flex items-center justify-between mb-4">
+              <div class="flex items-center gap-2">
+                <div class="icon-chip" style="background:rgba(245,158,11,0.1); border:1px solid rgba(245,158,11,0.22)">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" stroke-width="2.5" stroke-linecap="round"><circle cx="9" cy="12" r="1"/><circle cx="9" cy="5" r="1"/><circle cx="9" cy="19" r="1"/><path d="M14 12H21M14 5H21M14 19H21"/></svg>
+                </div>
+                <h2 class="section-heading">Price Explorer</h2>
+              </div>
+              <div class="text-right">
+                <p class="text-xs" style="color:var(--text-2)">Testing</p>
+                <p id="slider-price-display" class="font-display font-bold text-base text-white leading-none mt-0.5">—</p>
               </div>
             </div>
 
-            <div class="zone-bar"></div>
+            <!-- Gradient zone bar -->
+            <div class="slider-zones mb-3 rounded-full"></div>
+
+            <!-- Slider -->
             <input id="price-slider" type="range" min="0" max="1000" step="0.01"
-              class="rng" style="--pct:50%;" oninput="onSliderChange(this.value)"/>
-            <div class="slider-lbls">
+              class="profit-slider mb-3 block w-full"
+              oninput="onSliderChange(this.value)"
+              style="--pct:50%"/>
+
+            <!-- Range labels -->
+            <div class="flex justify-between text-xs mb-5" style="color:var(--text-3)">
               <span id="slider-min-label">Floor</span>
               <span id="slider-rec-label">Target</span>
               <span id="slider-max-label">Premium</span>
             </div>
 
-            <div class="stat-grid">
-              <div class="stat-box">
-                <div class="stat-box-lbl">Net profit</div>
-                <div id="slider-profit" class="stat-box-val" style="color:var(--white);">—</div>
+            <!-- Live stats from slider -->
+            <div class="grid grid-cols-2 gap-3">
+              <div class="rounded-xl p-4 text-center" style="background:rgba(4,9,26,0.7); border:1px solid var(--border)">
+                <p class="text-xs mb-1.5" style="color:var(--text-2)">Net Profit</p>
+                <p id="slider-profit" class="font-display font-bold text-xl text-white">—</p>
               </div>
-              <div class="stat-box">
-                <div class="stat-box-lbl">Margin</div>
-                <div id="slider-margin-pct" class="stat-box-val" style="color:var(--white);">—</div>
+              <div class="rounded-xl p-4 text-center" style="background:rgba(4,9,26,0.7); border:1px solid var(--border)">
+                <p class="text-xs mb-1.5" style="color:var(--text-2)">Margin Achieved</p>
+                <p id="slider-margin-pct" class="font-display font-bold text-xl text-white">—</p>
               </div>
             </div>
-          </div>
-
-          <!-- Profitability Chart -->
-          <div class="chart-card r4">
-            <h2>Profitability curve</h2>
-            <p>Net profit across every price point in your range</p>
-            <div class="chart-wrap"><canvas id="profit-chart"></canvas></div>
-            <div class="chart-leg">
-              <span><span class="leg-solid"></span> Net profit</span>
-              <span><span class="leg-dash"></span> Break-even</span>
-            </div>
-          </div>
-
-          <!-- Formula -->
-          <div class="formula r5">
-            <strong>Floor</strong> = (cost + ads + ship) ÷ (1 − tax) &nbsp;·&nbsp;
-            <strong>Target</strong> = total ÷ (1 − tax − margin) &nbsp;·&nbsp;
-            <strong>Premium</strong> = target × 1.15
           </div>
 
           <!-- YouTube CTA -->
-          <a href="https://www.youtube.com" target="_blank" class="yt-cta r5" style="margin-top:0;">
-            <div class="yt-icon">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+          <a href="https://www.youtube.com" target="_blank"
+            class="yt-cta flex items-center gap-3 p-4 cursor-pointer group fade-up du-5">
+            <div class="w-11 h-11 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+              <svg width="19" height="19" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
             </div>
-            <div style="flex:1;">
-              <div class="yt-title">Subscribe for AI Strategy Insights</div>
-              <div class="yt-sub">Pricing psychology, global growth &amp; e-commerce AI</div>
+            <div class="flex-1 min-w-0">
+              <p class="text-sm font-display font-semibold text-white">Subscribe for AI Strategy Insights</p>
+              <p class="text-xs mt-0.5 truncate" style="color:var(--text-3)">Pricing psychology, global growth &amp; e-commerce AI</p>
             </div>
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 opacity-60 group-hover:opacity-100 transition-opacity" style="color:#f87171"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
           </a>
 
         </div><!-- /calc-main -->
-      </div><!-- /calc-layout -->
-    </div><!-- /calculator -->
+      </div><!-- /calc-grid -->
+    </div><!-- /calculator section -->
 
-    <!-- ══ SETTINGS ══ -->
+    <!-- ══════════ SETTINGS SECTION ══════════ -->
     <div id="section-settings" class="section">
-      <div class="settings-wrap">
+      <div class="max-w-lg space-y-4">
 
         <!-- Global defaults -->
-        <div class="card r1">
-          <div class="card-head">
-            <div>
-              <h2>Global defaults</h2>
-              <p>Saved to your account · auto-loaded every session</p>
+        <div class="glass p-5 fade-up du-1">
+          <div class="flex items-center gap-2 mb-1">
+            <div class="icon-chip" style="background:rgba(59,130,246,0.14); border:1px solid rgba(59,130,246,0.28)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
             </div>
+            <h2 class="section-heading">Global Defaults</h2>
           </div>
-          <div class="card-body">
-            <div class="irow">
-              <label class="lbl" for="set-currency">Currency</label>
-              <select id="set-currency" class="field">
+          <p class="text-xs mb-5 ml-10" style="color:var(--text-2)">Saved to your profile and auto-loaded every session.</p>
+
+          <div class="space-y-4">
+            <div>
+              <label class="field-label">Currency</label>
+              <select id="set-currency" class="neon-plain">
                 <option value="USD">USD — US Dollar ($)</option>
                 <option value="EUR">EUR — Euro (€)</option>
                 <option value="GBP">GBP — British Pound (£)</option>
@@ -713,372 +945,463 @@ body::before {
                 <option value="MXN">MXN — Mexican Peso ($)</option>
               </select>
             </div>
-            <div class="g3">
-              <div class="irow">
-                <label class="lbl" for="set-tax">Tax rate</label>
-                <div class="fw s"><input id="set-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="field"/><span class="sym">%</span></div>
+            <div class="grid grid-cols-3 gap-3">
+              <div>
+                <label class="field-label">Tax Rate %</label>
+                <input id="set-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-plain text-center"/>
+                <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 10 = 10%</p>
               </div>
-              <div class="irow">
-                <label class="lbl" for="set-ship">Shipping</label>
-                <div class="fw"><span class="sym">$</span><input id="set-ship" type="number" min="0" step="0.01" placeholder="5.00" class="field"/></div>
+              <div>
+                <label class="field-label">Shipping</label>
+                <input id="set-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-plain text-center"/>
               </div>
-              <div class="irow">
-                <label class="lbl" for="set-margin">Margin</label>
-                <div class="fw s"><input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="field"/><span class="sym">%</span></div>
+              <div>
+                <label class="field-label">Margin %</label>
+                <input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-plain text-center"/>
+                <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 30 = 30%</p>
               </div>
             </div>
-            <div class="hr"></div>
-            <button onclick="saveSettings()" class="btn btn-gold" style="max-width:200px;">
-              <svg id="save-spin" class="hidden spin" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-              <svg id="save-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-              <span id="save-text">Save settings</span>
-            </button>
           </div>
+
+          <button onclick="saveSettings()" class="btn-primary mt-5 flex items-center justify-center gap-2" style="max-width:220px;">
+            <svg id="save-spin" class="hidden spin" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            <svg id="save-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span id="save-text">Save Settings</span>
+          </button>
         </div>
 
         <!-- Account -->
-        <div class="card r2">
-          <div class="card-head"><div><h2>Account</h2></div></div>
-          <div class="card-body">
-            <div class="acc-row">
-              <div class="avatar"><span id="account-initial">?</span></div>
-              <div>
-                <div id="set-email" class="acc-email"></div>
-                <div class="acc-sub">Active account</div>
-              </div>
+        <div class="glass p-5 fade-up du-2">
+          <div class="flex items-center gap-2 mb-4">
+            <div class="icon-chip" style="background:rgba(16,185,129,0.1); border:1px solid rgba(16,185,129,0.22)">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
             </div>
-            <button onclick="signOut()" class="btn btn-ghost" style="align-self:flex-start;">Sign out</button>
+            <h2 class="section-heading">Account</h2>
           </div>
+          <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background:rgba(4,9,26,0.7); border:1px solid var(--border)">
+            <div class="w-10 h-10 rounded-full flex items-center justify-center font-display font-bold"
+              style="background:linear-gradient(135deg,#1d4ed8,#3b82f6); font-size:0.95rem;">
+              <span id="account-initial">?</span>
+            </div>
+            <div>
+              <p id="set-email" class="text-sm font-medium text-white"></p>
+              <p class="text-xs" style="color:var(--text-3)">Active account</p>
+            </div>
+          </div>
+          <button onclick="signOut()" class="btn-ghost flex items-center gap-2">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+          </button>
         </div>
 
         <!-- Math explainer -->
-        <div class="card r3">
-          <div class="card-head"><div><h2>How the math works</h2></div></div>
-          <div class="card-body">
-            <div class="math-note">
-              <strong>Floor price</strong> — the minimum you can sell at without losing money. Any lower and every sale is a loss.<br>
-              Formula: (cost + ads + shipping) ÷ (1 − tax rate)<br><br>
-              <strong>Target price</strong> — the price that achieves exactly your margin goal.<br>
-              Formula: total ÷ (1 − tax rate − margin rate)<br><br>
-              <strong>Premium price</strong> — target × 1.15. A 15% buffer that absorbs chargebacks, returns, and unexpected costs.
-            </div>
+        <div class="glass p-5 fade-up du-3">
+          <div class="flex items-center gap-2 mb-3">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <h3 class="font-display font-semibold text-sm text-white">Range Math Explained</h3>
+          </div>
+          <div class="space-y-2.5 text-xs leading-relaxed" style="color:var(--text-2)">
+            <p><span style="color:#f87171; font-weight:600;">Floor Price</span> — The break-even limit. Derived as (Cost+Ads+Ship) ÷ (1−Tax). You cannot go below this or you lose money on every sale.</p>
+            <p><span style="color:#60a5fa; font-weight:600;">Target Price</span> — Your margin baked in: Total ÷ (1−Tax−Margin). Guarantees exactly your desired profit margin.</p>
+            <p><span style="color:#34d399; font-weight:600;">Premium Price</span> — Target × 1.15. A 15% buffer to absorb refunds, chargebacks &amp; unexpected costs without eroding profit.</p>
           </div>
         </div>
 
       </div>
-    </div><!-- /settings -->
+    </div><!-- /settings section -->
 
   </main>
-
-  <!-- Mobile bottom nav -->
-  <nav class="bot-nav layer">
-    <button onclick="showSection('calculator')" id="bnav-calculator" class="bot-btn active">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
-      Calculator
-    </button>
-    <button onclick="showSection('settings')" id="bnav-settings" class="bot-btn">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-      Settings
-    </button>
-  </nav>
-
 </div><!-- /app-screen -->
 
 
-<!-- ══════════════════════════
+<!-- ══════════════════════════════════
      JAVASCRIPT
-══════════════════════════ -->
+══════════════════════════════════ -->
 <script>
-/* ── SUPABASE ── */
+// ─────────────────────────────────────
+//  CONFIG — Supabase
+// ─────────────────────────────────────
 const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-/* ── STATE ── */
-const SYMS = { USD:'$',EUR:'€',GBP:'£',JPY:'¥',AUD:'A$',CAD:'C$',CHF:'Fr',CNY:'¥',BRL:'R$',MXN:'$' };
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const S = {
-  user: null,
-  currency: 'USD',
-  range: { floor:0, rec:0, prem:0, total:0, tax:0 },
-  chart: null,  // initChart() populates — never touched before that
-};
+const SYMBOLS = { USD:'$', EUR:'€', GBP:'£', JPY:'¥', AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥', BRL:'R$', MXN:'$' };
+let currentUser = null;
+let currency    = 'USD';
+let authMode    = 'login';
+let profitChart = null;
+let rangeState  = { floor:0, rec:0, prem:0, total:0, tax:0 };
 
-const sym = () => SYMS[S.currency] || '$';
-const g   = id  => document.getElementById(id);
-const setT = (id,v) => { const e=g(id); if(e) e.textContent=v; };
-const setV = (id,v) => { const e=g(id); if(e) e.value=v; };
+// ─────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────
+window.addEventListener('DOMContentLoaded', async () => {
+  initChart();
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) { currentUser = session.user; await boot(); }
+  sb.auth.onAuthStateChange(async (_, session) => {
+    if (session?.user && !currentUser) { currentUser = session.user; await boot(); }
+    else if (!session) { currentUser = null; toAuth(); }
+  });
+});
 
-/* ── CHART ── must be created before any calculate() call ── */
+// ─────────────────────────────────────
+//  AUTH
+// ─────────────────────────────────────
+function switchAuthTab(m) {
+  authMode = m;
+  ['login','signup'].forEach(t => {
+    document.getElementById(`atab-${t}`).classList.toggle('active', t === m);
+  });
+  document.getElementById('a-btn-text').textContent = m === 'login' ? 'Sign In' : 'Create Account';
+}
+
+async function handleAuth() {
+  const email = document.getElementById('a-email').value.trim();
+  const pass  = document.getElementById('a-pass').value;
+  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
+  setAuthLoad(true);
+  try {
+    const fn = authMode === 'login'
+      ? sb.auth.signInWithPassword({ email, password: pass })
+      : sb.auth.signUp({ email, password: pass });
+    const { error, data } = await fn;
+    if (error) throw error;
+    if (authMode === 'signup' && !data?.session) toast('Check your email to confirm!', 'info');
+    else toast('Welcome! 🚀', 'success');
+  } catch(e) { toast(e.message || 'Auth failed', 'error'); }
+  finally { setAuthLoad(false); }
+}
+function setAuthLoad(l) {
+  document.getElementById('a-spin').classList.toggle('hidden', !l);
+  document.getElementById('a-btn-text').classList.toggle('hidden', l);
+  document.getElementById('a-btn').disabled = l;
+}
+
+// ─────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────
+async function boot() {
+  document.getElementById('auth-screen').classList.add('hidden');
+  document.getElementById('app-screen').classList.remove('hidden');
+  document.getElementById('nav-email').textContent       = currentUser.email;
+  document.getElementById('set-email').textContent       = currentUser.email;
+  document.getElementById('account-initial').textContent = currentUser.email[0].toUpperCase();
+  await loadProfile();
+}
+function toAuth() {
+  document.getElementById('app-screen').classList.add('hidden');
+  document.getElementById('auth-screen').classList.remove('hidden');
+}
+
+// ─────────────────────────────────────
+//  PROFILE
+// ─────────────────────────────────────
+async function loadProfile() {
+  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
+  if (data) applyProfile(data);
+  else calculate();
+}
+
+function applyProfile(d) {
+  currency = d.currency || 'USD';
+  const tax    = +(d.default_tax    * 100).toFixed(4);
+  const margin = +(d.default_margin * 100).toFixed(4);
+  setVal('inp-tax',    tax);
+  setVal('inp-ship',   d.default_shipping);
+  setVal('inp-margin', margin);
+  setVal('set-tax',    tax);
+  setVal('set-ship',   d.default_shipping);
+  setVal('set-margin', margin);
+  document.getElementById('set-currency').value = currency;
+  updateSymbols();
+  calculate();
+}
+function setVal(id, v) { const el = document.getElementById(id); if(el) el.value = v; }
+
+// ─────────────────────────────────────
+//  SETTINGS
+// ─────────────────────────────────────
+async function saveSettings() {
+  const tax    = parseFloat(document.getElementById('set-tax').value)    || 0;
+  const ship   = parseFloat(document.getElementById('set-ship').value)   || 0;
+  const margin = parseFloat(document.getElementById('set-margin').value) || 0;
+  const cur    = document.getElementById('set-currency').value;
+  if (tax + margin >= 100) { toast('Tax + Margin must be < 100%', 'error'); return; }
+  setSaveLoad(true);
+  const { error } = await sb.from('profiles').upsert({
+    id: currentUser.id, email: currentUser.email,
+    default_tax: tax/100, default_shipping: ship, default_margin: margin/100,
+    currency: cur, updated_at: new Date().toISOString()
+  }, { onConflict: 'id' });
+  setSaveLoad(false);
+  if (error) { toast(error.message, 'error'); return; }
+  currency = cur;
+  setVal('inp-tax', tax); setVal('inp-ship', ship); setVal('inp-margin', margin);
+  updateSymbols(); calculate();
+  toast('Settings saved ✓', 'success');
+}
+function setSaveLoad(l) {
+  document.getElementById('save-spin').classList.toggle('hidden', !l);
+  document.getElementById('save-icon').classList.toggle('hidden', l);
+  document.getElementById('save-text').textContent = l ? 'Saving…' : 'Save Settings';
+}
+
+// ─────────────────────────────────────
+//  CURRENCY SYMBOLS
+// ─────────────────────────────────────
+function updateSymbols() {
+  const s = SYMBOLS[currency] || '$';
+  ['sym-cost','sym-ads','sym-ship'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.textContent = s;
+  });
+}
+
+// ─────────────────────────────────────
+//  CORE CALCULATIONS (unchanged logic)
+//  Floor  = (cost+ads+ship) / (1 - taxRate)
+//  Target = (cost+ads+ship) / (1 - taxRate - marginRate)
+//  Premium= Target × 1.15
+// ─────────────────────────────────────
+function calculate() {
+  const cost   = parseFloat(document.getElementById('inp-cost')?.value)   || 0;
+  const ads    = parseFloat(document.getElementById('inp-ads')?.value)    || 0;
+  const tax    = (parseFloat(document.getElementById('inp-tax')?.value)   || 0) / 100;
+  const ship   = parseFloat(document.getElementById('inp-ship')?.value)   || 0;
+  const margin = (parseFloat(document.getElementById('inp-margin')?.value)|| 0) / 100;
+
+  const total     = cost + ads + ship;
+  const divFloor  = 1 - tax;
+  const divTarget = 1 - tax - margin;
+  const s = SYMBOLS[currency] || '$';
+
+  if (divFloor <= 0 || divTarget <= 0 || divTarget >= 1.5) {
+    ['val-floor','val-rec','val-prem'].forEach(id => {
+      const el = document.getElementById(id); if(el) el.textContent = '—';
+    });
+    return;
+  }
+
+  const floor = total / divFloor;
+  const rec   = total / divTarget;
+  const prem  = rec * 1.15;
+
+  rangeState = { floor, rec, prem, total, tax };
+
+  animVal('val-floor', `${s}${floor.toFixed(2)}`);
+  animVal('val-rec',   `${s}${rec.toFixed(2)}`);
+  animVal('val-prem',  `${s}${prem.toFixed(2)}`);
+
+  // Update slider
+  const slider = document.getElementById('price-slider');
+  if (!slider) return;
+  const sliderMin = Math.max(0, floor * 0.7);
+  const sliderMax = prem * 1.3;
+  slider.min   = sliderMin.toFixed(2);
+  slider.max   = sliderMax.toFixed(2);
+  slider.value = rec.toFixed(2);
+  document.getElementById('slider-min-label').textContent = `${s}${floor.toFixed(0)}`;
+  document.getElementById('slider-rec-label').textContent = `${s}${rec.toFixed(0)}`;
+  document.getElementById('slider-max-label').textContent = `${s}${prem.toFixed(0)}`;
+  onSliderChange(rec, true);
+
+  updateChart(floor, rec, prem, total, tax);
+}
+
+function animVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el || el.textContent === val) return;
+  el.textContent = val;
+  const card = el.closest('.range-card');
+  if (card) { card.classList.remove('pop'); void card.offsetWidth; card.classList.add('pop'); }
+}
+
+// ─────────────────────────────────────
+//  SLIDER (unchanged logic)
+// ─────────────────────────────────────
+function onSliderChange(rawVal, skipUpdate) {
+  const price  = parseFloat(rawVal);
+  const slider = document.getElementById('price-slider');
+  const min    = parseFloat(slider.min);
+  const max    = parseFloat(slider.max);
+  const pct    = max === min ? 0 : ((price - min) / (max - min)) * 100;
+  slider.style.setProperty('--pct', pct.toFixed(1) + '%');
+
+  const s = SYMBOLS[currency] || '$';
+  const { total, tax } = rangeState;
+  const taxAmt = price * tax;
+  const net    = price - taxAmt - total;
+  const marginAchieved = price > 0 ? ((net / price) * 100) : 0;
+
+  const pdEl = document.getElementById('slider-price-display');
+  if (pdEl) pdEl.textContent = `${s}${price.toFixed(2)}`;
+
+  const profitEl = document.getElementById('slider-profit');
+  if (profitEl) {
+    profitEl.textContent = `${s}${net.toFixed(2)}`;
+    profitEl.style.color = net >= 0 ? '#10b981' : '#f43f5e';
+  }
+  const mEl = document.getElementById('slider-margin-pct');
+  if (mEl) {
+    mEl.textContent = `${marginAchieved.toFixed(1)}%`;
+    mEl.style.color = marginAchieved > 0 ? '#10b981' : '#f43f5e';
+  }
+}
+
+// ─────────────────────────────────────
+//  CHART — fully responsive
+// ─────────────────────────────────────
 function initChart() {
-  const canvas = g('profit-chart');
+  const canvas = document.getElementById('profit-chart');
   if (!canvas) return;
+  const ctx = canvas.getContext('2d');
 
-  S.chart = new Chart(canvas.getContext('2d'), {
+  profitChart = new Chart(ctx, {
     type: 'line',
     data: {
       labels: [],
       datasets: [
         {
-          label: 'Net Profit', data: [],
-          borderColor: '#c9a84c',
-          backgroundColor: ctx => {
-            const {ctx:c2,chartArea} = ctx.chart;
-            if (!chartArea) return 'rgba(201,168,76,0.08)';
-            const g2=c2.createLinearGradient(0,chartArea.top,0,chartArea.bottom);
-            g2.addColorStop(0,'rgba(201,168,76,0.16)'); g2.addColorStop(1,'rgba(201,168,76,0)');
-            return g2;
+          label: 'Net Profit',
+          data: [],
+          borderColor: '#3b82f6',
+          backgroundColor: (context) => {
+            const chart = context.chart;
+            const { ctx: c, chartArea } = chart;
+            if (!chartArea) return 'rgba(59,130,246,0.08)';
+            const grad = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            grad.addColorStop(0, 'rgba(59,130,246,0.22)');
+            grad.addColorStop(0.6, 'rgba(59,130,246,0.06)');
+            grad.addColorStop(1, 'rgba(59,130,246,0)');
+            return grad;
           },
-          fill:true, tension:0.4, pointRadius:0, borderWidth:2,
+          fill: true,
+          tension: 0.45,
+          pointRadius: 0,
+          borderWidth: 2.5,
         },
         {
-          label:'Break-even', data:[],
-          borderColor:'rgba(201,97,76,0.55)', borderDash:[4,4],
-          fill:false, pointRadius:0, borderWidth:1.5, tension:0,
+          label: 'Break-even',
+          data: [],
+          borderColor: 'rgba(244,63,94,0.55)',
+          borderDash: [5, 4],
+          fill: false,
+          pointRadius: 0,
+          borderWidth: 1.5,
+          tension: 0,
         },
-      ],
+      ]
     },
     options: {
-      responsive:true, maintainAspectRatio:false,
-      interaction:{ mode:'index', intersect:false },
-      plugins:{
-        legend:{ display:false },
-        tooltip:{
-          backgroundColor:'rgba(20,20,20,0.96)',
-          borderColor:'rgba(201,168,76,0.2)', borderWidth:1,
-          titleColor:'#c9a84c', bodyColor:'#f0ebe0', padding:10,
-          titleFont:{ family:'IBM Plex Mono', size:10 },
-          bodyFont:{  family:'IBM Plex Mono', size:11 },
-          callbacks:{ label:c2=>` ${c2.dataset.label}: ${sym()}${c2.parsed.y.toFixed(2)}` },
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          backgroundColor: 'rgba(4,9,26,0.95)',
+          borderColor: 'rgba(59,130,246,0.3)',
+          borderWidth: 1,
+          titleColor: '#93c5fd',
+          bodyColor: '#e2e8f4',
+          padding: 10,
+          titleFont: { family: 'DM Mono', size: 10 },
+          bodyFont: { family: 'DM Mono', size: 11 },
+          callbacks: {
+            label: ctx => {
+              const s = SYMBOLS[currency] || '$';
+              return ` ${ctx.dataset.label}: ${s}${ctx.parsed.y.toFixed(2)}`;
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(59,130,246,0.05)' },
+          ticks: {
+            color: '#2d3f5e',
+            font: { size: 9, family: 'DM Mono' },
+            maxTicksLimit: window.innerWidth < 500 ? 4 : 6,
+          }
         },
+        y: {
+          grid: { color: 'rgba(59,130,246,0.05)' },
+          ticks: {
+            color: '#2d3f5e',
+            font: { size: 9, family: 'DM Mono' },
+            callback: v => { const s = SYMBOLS[currency]||'$'; return `${s}${v.toFixed(0)}`; }
+          }
+        }
       },
-      scales:{
-        x:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#3a3836',font:{size:9,family:'IBM Plex Mono'},maxTicksLimit:7} },
-        y:{ grid:{color:'rgba(255,255,255,0.04)'}, ticks:{color:'#3a3836',font:{size:9,family:'IBM Plex Mono'},callback:v=>`${sym()}${v.toFixed(0)}`} },
-      },
-      animation:{ duration:300, easing:'easeInOutQuart' },
-    },
+      animation: { duration: 350, easing: 'easeInOutQuart' }
+    }
   });
 }
 
-function pushChart(floor, rec, prem, total, tax) {
-  if (!S.chart||!S.chart.data) return;
+function updateChart(floor, rec, prem, total, tax) {
+  if (!profitChart) return;
+  const steps    = 46;
+  const priceMin = Math.max(0, floor * 0.5);
+  const priceMax = prem * 1.42;
+  if (priceMax <= priceMin) return;
+  const step = (priceMax - priceMin) / steps;
+  const s = SYMBOLS[currency] || '$';
 
-  const steps = 46;
-  const mn = Math.max(0, floor*0.5), mx = prem*1.4;
-  if (mx <= mn) return;
-
-  const step=(mx-mn)/steps, labels=[], profitData=[], zeros=[];
-  for (let i=0; i<=steps; i++) {
-    const p=mn+i*step;
-    const net = p - p*tax - total;
-    labels.push(`${sym()}${p.toFixed(2)}`);
-    profitData.push(parseFloat(net.toFixed(4)));
-    zeros.push(0);
-  }
-  S.chart.data.labels              = labels;
-  S.chart.data.datasets[0].data    = profitData;
-  S.chart.data.datasets[1].data    = zeros;
-  S.chart.update('active');
-}
-
-/* ── CORE MATH ── */
-// Floor  = (cost+ads+ship) / (1 - tax)
-// Target = total / (1 - tax - margin)
-// Premium = target × 1.15
-function calculate() {
-  const cost   = parseFloat(g('inp-cost')?.value)   || 0;
-  const ads    = parseFloat(g('inp-ads')?.value)    || 0;
-  const tax    = (parseFloat(g('inp-tax')?.value)   || 0)/100;
-  const ship   = parseFloat(g('inp-ship')?.value)   || 0;
-  const margin = (parseFloat(g('inp-margin')?.value)|| 0)/100;
-
-  const total   = cost + ads + ship;
-  const dFloor  = 1 - tax;
-  const dTarget = 1 - tax - margin;
-  const $ = sym();
-
-  if (dFloor<=0 || dTarget<=0 || dTarget>=1.5) {
-    ['val-floor','val-rec','val-prem','slider-price-display','slider-profit','slider-margin-pct'].forEach(id=>setT(id,'—'));
-    return;
+  const labels = [], profitData = [], beData = [];
+  for (let i = 0; i <= steps; i++) {
+    const p   = priceMin + i * step;
+    const net = p - (p * tax) - total;
+    labels.push(`${s}${p.toFixed(1)}`);
+    profitData.push(parseFloat(net.toFixed(2)));
+    beData.push(0);
   }
 
-  const floor = total / dFloor;
-  const rec   = total / dTarget;
-  const prem  = rec * 1.15;
-
-  S.range = { floor, rec, prem, total, tax };
-
-  animAnc('val-floor', `${$}${floor.toFixed(2)}`);
-  animAnc('val-rec',   `${$}${rec.toFixed(2)}`);
-  animAnc('val-prem',  `${$}${prem.toFixed(2)}`);
-
-  // Update slider
-  const sl=g('price-slider'); if(!sl) return;
-  const mn=Math.max(0,floor*0.7), mx=prem*1.3;
-  sl.min=mn.toFixed(2); sl.max=mx.toFixed(2); sl.value=rec.toFixed(2);
-  sl.style.setProperty('--pct', pctOf(rec,mn,mx)+'%');
-  setT('slider-min-label',`${$}${floor.toFixed(0)}`);
-  setT('slider-rec-label',`${$}${rec.toFixed(0)}`);
-  setT('slider-max-label',`${$}${prem.toFixed(0)}`);
-  onSliderChange(rec, true);
-
-  pushChart(floor, rec, prem, total, tax);
+  profitChart.data.labels              = labels;
+  profitChart.data.datasets[0].data    = profitData;
+  profitChart.data.datasets[1].data    = beData;
+  profitChart.update('active');
 }
 
-function animAnc(id, val) {
-  const el=g(id); if(!el||el.textContent===val) return;
-  el.textContent=val;
-  const p=el.closest('.anc'); if(p){p.classList.remove('pop');void p.offsetWidth;p.classList.add('pop');}
-}
-
-/* ── SLIDER ── */
-const pctOf = (v,mn,mx) => mx===mn ? 0 : ((v-mn)/(mx-mn)*100).toFixed(2);
-
-function onSliderChange(raw, skipUpdate) {
-  const sl=g('price-slider'); if(!sl) return;
-  const price=parseFloat(raw), mn=parseFloat(sl.min), mx=parseFloat(sl.max);
-  if (!skipUpdate) sl.style.setProperty('--pct', pctOf(price,mn,mx)+'%');
-
-  const {total,tax}=S.range;
-  const net = price - price*tax - total;
-  const mpct = price>0 ? (net/price)*100 : 0;
-  const $=sym();
-
-  setT('slider-price-display',`${$}${price.toFixed(2)}`);
-  const pe=g('slider-profit');
-  if(pe){pe.textContent=`${$}${net.toFixed(2)}`;pe.style.color=net>=0?'var(--green)':'var(--red)';}
-  const me=g('slider-margin-pct');
-  if(me){me.textContent=`${mpct.toFixed(1)}%`;me.style.color=mpct>0?'var(--green)':'var(--red)';}
-}
-
-/* ── AUTH ── */
-let authMode='login';
-function switchAuthTab(m) {
-  authMode=m;
-  ['login','signup'].forEach(t=>g(`atab-${t}`)?.classList.toggle('active',t===m));
-  setT('a-btn-text', m==='login'?'Sign in':'Create account');
-}
-
-async function handleAuth() {
-  const email=g('a-email')?.value.trim()||'', pass=g('a-pass')?.value||'';
-  if(!email||!pass){toast('Enter your email and password','error');return;}
-  setAuthLoad(true);
-  try {
-    const {error,data} = authMode==='login'
-      ? await sb.auth.signInWithPassword({email,password:pass})
-      : await sb.auth.signUp({email,password:pass});
-    if(error) throw error;
-    if(authMode==='signup'&&!data?.session) toast('Check your email to confirm ✉️','info');
-    else toast('Welcome! 🚀','success');
-  } catch(e){ toast(e.message||'Auth failed','error'); }
-  finally{ setAuthLoad(false); }
-}
-
-function setAuthLoad(l) {
-  g('a-spin')?.classList.toggle('hidden',!l);
-  g('a-btn-text')?.classList.toggle('hidden',l);
-  if(g('a-btn')) g('a-btn').disabled=l;
-}
-
-/* ── BOOT ── */
-async function boot(user) {
-  S.user=user;
-  g('auth-screen').classList.add('hidden');
-  g('app-screen').classList.remove('hidden');
-  setT('nav-email',user.email); setT('set-email',user.email);
-  setT('account-initial',user.email[0].toUpperCase());
-  await loadProfile(user.id);
-}
-function goAuth() { g('app-screen').classList.add('hidden'); g('auth-screen').classList.remove('hidden'); }
-
-async function loadProfile(uid) {
-  const {data,error}=await sb.from('profiles').select('*').eq('id',uid).single();
-  if(error&&error.code!=='PGRST116'){calculate();return;}
-  if(data) applyProfile(data); else calculate();
-}
-
-function applyProfile(d) {
-  S.currency = d.currency||'USD';
-  const tp=+((d.default_tax||0)*100).toFixed(4);
-  const mp=+((d.default_margin||0)*100).toFixed(4);
-  const sh=d.default_shipping||0;
-  setV('inp-tax',tp); setV('inp-ship',sh); setV('inp-margin',mp);
-  setV('set-tax',tp); setV('set-ship',sh); setV('set-margin',mp);
-  const ce=g('set-currency'); if(ce) ce.value=S.currency;
-  updateSymbols(); calculate();
-}
-
-/* ── SETTINGS ── */
-async function saveSettings() {
-  const tax=parseFloat(g('set-tax')?.value)||0;
-  const ship=parseFloat(g('set-ship')?.value)||0;
-  const margin=parseFloat(g('set-margin')?.value)||0;
-  const cur=g('set-currency')?.value||'USD';
-  if(tax+margin>=100){toast('Tax + Margin must be under 100%','error');return;}
-  setSaveLoad(true);
-  const {error}=await sb.from('profiles').upsert({
-    id:S.user.id, email:S.user.email,
-    default_tax:tax/100, default_shipping:ship, default_margin:margin/100,
-    currency:cur, updated_at:new Date().toISOString(),
-  },{onConflict:'id'});
-  setSaveLoad(false);
-  if(error){toast(error.message,'error');return;}
-  S.currency=cur;
-  setV('inp-tax',tax); setV('inp-ship',ship); setV('inp-margin',margin);
-  updateSymbols(); calculate();
-  toast('Settings saved ✓','success');
-}
-
-function setSaveLoad(l) {
-  g('save-spin')?.classList.toggle('hidden',!l);
-  g('save-icon')?.classList.toggle('hidden',l);
-  setT('save-text',l?'Saving…':'Save settings');
-}
-
-function updateSymbols() {
-  const s=sym();
-  ['sym-cost','sym-ads','sym-ship'].forEach(id=>setT(id,s));
-}
-
-/* ── NAV ── */
+// ─────────────────────────────────────
+//  SECTION SWITCHING (syncs all navs)
+// ─────────────────────────────────────
 function showSection(name) {
-  ['calculator','settings'].forEach(s=>{
-    const on=s===name;
-    g(`section-${s}`)?.classList.toggle('active',on);
-    g(`ntab-${s}`)?.classList.toggle('active',on);
-    const bn=g(`bnav-${s}`); if(bn) bn.classList.toggle('active',on);
+  ['calculator','settings'].forEach(s => {
+    document.getElementById(`section-${s}`)?.classList.toggle('active', s === name);
+    // Desktop tabs
+    document.getElementById(`ntab-${s}`)?.classList.toggle('active', s === name);
+    // Mobile tabs
+    document.getElementById(`mntab-${s}`)?.classList.toggle('active', s === name);
   });
+  // Resize chart after layout change
+  if (name === 'calculator' && profitChart) {
+    setTimeout(() => profitChart.resize(), 50);
+  }
 }
 
-async function signOut() { await sb.auth.signOut(); S.user=null; goAuth(); toast('Signed out','info'); }
-
-/* ── TOAST ── */
-let _tt;
-function toast(msg,type='info') {
-  const el=g('toast'); if(!el) return;
-  el.textContent=msg; el.className=`show ${type}`;
-  clearTimeout(_tt); _tt=setTimeout(()=>el.classList.remove('show'),3200);
+// ─────────────────────────────────────
+//  SIGN OUT
+// ─────────────────────────────────────
+async function signOut() {
+  await sb.auth.signOut();
+  currentUser = null;
+  toAuth();
+  toast('Signed out', 'info');
 }
 
-/* ── ENTRY — strict order:
-   ① initChart  (must come first)
-   ② getSession
-   ③ onAuthStateChange
-─────────────────────────── */
-window.addEventListener('DOMContentLoaded', async () => {
-
-  initChart(); // ① always first — prevents null crash
-
-  const {data:{session}} = await sb.auth.getSession();
-  if (session?.user) await boot(session.user);
-
-  sb.auth.onAuthStateChange(async (_,session) => {
-    if (session?.user&&!S.user) await boot(session.user);
-    else if (!session&&S.user) { S.user=null; goAuth(); }
-  });
-
-});
+// ─────────────────────────────────────
+//  TOAST
+// ─────────────────────────────────────
+let toastTimer;
+function toast(msg, type = 'info') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `show ${type}`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+}
 </script>
 </body>
 </html>
