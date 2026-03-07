@@ -3,1107 +3,1263 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>grow v2 — Dynamic Range Engine</title>
+  <title>Ribhi — Profit Range Engine</title>
 
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
-
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: {
-            display: ['Outfit', 'sans-serif'],
-            body: ['Space Grotesk', 'sans-serif'],
-          }
-        }
-      }
-    }
-  </script>
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Mono:wght@300;400;500&display=swap" rel="stylesheet"/>
 
   <style>
+    /* ══════════════════════════════════════════
+       DESIGN TOKENS
+    ══════════════════════════════════════════ */
     :root {
-      --navy:      #050b18;
-      --navy-2:    #070e1f;
-      --navy-3:    #0a1428;
-      --card:      rgba(10, 20, 45, 0.7);
-      --border:    rgba(56, 139, 253, 0.12);
-      --border-hi: rgba(56, 139, 253, 0.35);
-      --blue:      #2f88ff;
-      --blue-dim:  #1a5fcc;
-      --blue-glow: rgba(47, 136, 255, 0.35);
-      --emerald:   #00e5a0;
-      --emerald-d: #00b07a;
-      --emerald-glow: rgba(0, 229, 160, 0.25);
-      --amber:     #ffb300;
-      --amber-glow: rgba(255, 179, 0, 0.25);
-      --rose:      #ff4d6d;
-      --text-1:    #e8edf5;
-      --text-2:    #7a90b8;
-      --text-3:    #3d5070;
+      --bg:        #080c14;
+      --bg-2:      #0c1220;
+      --bg-3:      #101828;
+      --surface:   #131d2e;
+      --surface-2: #1a2540;
+      --border:    rgba(99,179,237,0.10);
+      --border-hi: rgba(99,179,237,0.25);
+      --cyan:      #38bdf8;
+      --cyan-dim:  #0ea5e9;
+      --cyan-glow: rgba(56,189,248,0.18);
+      --gold:      #f6c90e;
+      --gold-dim:  #d4a800;
+      --gold-glow: rgba(246,201,14,0.18);
+      --green:     #00d68f;
+      --green-dim: #00b377;
+      --red:       #f5476b;
+      --amber:     #fb923c;
+      --t1:        #e2eaf6;
+      --t2:        #6b82a6;
+      --t3:        #2e3f5c;
+      --r:         16px;
     }
 
-    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
     html { scroll-behavior: smooth; }
 
     body {
-      font-family: 'Space Grotesk', sans-serif;
-      background: var(--navy);
-      color: var(--text-1);
+      font-family: 'DM Mono', monospace;
+      background: var(--bg);
+      color: var(--t1);
       min-height: 100vh;
       overflow-x: hidden;
     }
 
-    /* ── Animated starfield ── */
-    .starfield {
+    /* ── Background mesh ── */
+    body::before {
+      content: '';
       position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background:
-        radial-gradient(ellipse 80% 50% at 20% -10%, rgba(47,136,255,0.13) 0%, transparent 60%),
-        radial-gradient(ellipse 60% 40% at 80% 110%, rgba(0,229,160,0.08) 0%, transparent 60%),
-        var(--navy);
+        radial-gradient(ellipse 70% 55% at 10% 5%,  rgba(56,189,248,0.07) 0%, transparent 65%),
+        radial-gradient(ellipse 55% 45% at 90% 95%, rgba(246,201,14,0.05)  0%, transparent 65%),
+        radial-gradient(ellipse 40% 35% at 85% 15%, rgba(0,214,143,0.04)  0%, transparent 60%);
     }
-    .starfield::before {
+
+    /* Subtle grid texture */
+    body::after {
       content: '';
-      position: absolute; inset: 0;
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
       background-image:
-        radial-gradient(1px 1px at 15% 25%, rgba(255,255,255,0.4) 0%, transparent 100%),
-        radial-gradient(1px 1px at 45% 10%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 70% 35%, rgba(255,255,255,0.25) 0%, transparent 100%),
-        radial-gradient(1px 1px at 88% 15%, rgba(255,255,255,0.35) 0%, transparent 100%),
-        radial-gradient(1px 1px at 30% 70%, rgba(255,255,255,0.2) 0%, transparent 100%),
-        radial-gradient(1px 1px at 60% 80%, rgba(255,255,255,0.3) 0%, transparent 100%),
-        radial-gradient(1.5px 1.5px at 5% 55%, rgba(255,255,255,0.2) 0%, transparent 100%),
-        radial-gradient(1px 1px at 95% 65%, rgba(255,255,255,0.25) 0%, transparent 100%);
-    }
-    /* moving glow blob */
-    .glow-blob {
-      position: fixed; pointer-events: none; z-index: 0;
-      border-radius: 50%;
-      filter: blur(80px);
-      animation: blobFloat 20s ease-in-out infinite;
-    }
-    .glow-blob-1 {
-      width: 500px; height: 500px;
-      background: radial-gradient(circle, rgba(47,136,255,0.12) 0%, transparent 70%);
-      top: -150px; left: -150px;
-    }
-    .glow-blob-2 {
-      width: 400px; height: 400px;
-      background: radial-gradient(circle, rgba(0,229,160,0.08) 0%, transparent 70%);
-      bottom: -100px; right: -100px;
-      animation-delay: -10s;
-    }
-    @keyframes blobFloat {
-      0%,100% { transform: translate(0,0) scale(1); }
-      33%      { transform: translate(40px, 30px) scale(1.05); }
-      66%      { transform: translate(-30px, 20px) scale(0.95); }
+        linear-gradient(rgba(56,189,248,0.02) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56,189,248,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
     }
 
-    /* ── Glass card ── */
-    .glass {
-      background: var(--card);
-      backdrop-filter: blur(24px) saturate(180%);
-      -webkit-backdrop-filter: blur(24px) saturate(180%);
+    /* ── Scrollbar ── */
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--surface-2); border-radius: 4px; }
+
+    /* ── Typography ── */
+    .font-display { font-family: 'Syne', sans-serif; }
+    .mono { font-family: 'DM Mono', monospace; }
+
+    /* ── Utility ── */
+    .hidden { display: none !important; }
+    .z-app  { position: relative; z-index: 10; }
+
+    /* ══════════════════════════════════════════
+       SURFACE / CARD COMPONENTS
+    ══════════════════════════════════════════ */
+    .card {
+      background: var(--surface);
       border: 1px solid var(--border);
-      border-radius: 20px;
+      border-radius: var(--r);
+      transition: border-color 0.2s;
     }
-    .glass-hi { border-color: var(--border-hi); }
+    .card-hi {
+      border-color: var(--border-hi);
+      box-shadow: 0 0 0 1px rgba(56,189,248,0.06) inset;
+    }
+    .card:hover { border-color: var(--border-hi); }
 
-    /* ── Neon input ── */
-    .neon-input {
-      background: rgba(5, 11, 28, 0.8);
-      border: 1.5px solid rgba(56,139,253,0.15);
-      border-radius: 14px;
-      color: var(--text-1);
-      padding: 0.875rem 1rem 0.875rem 2.75rem;
-      font-size: 1rem;
-      font-family: 'Space Grotesk', sans-serif;
+    /* ══════════════════════════════════════════
+       FORM ELEMENTS
+    ══════════════════════════════════════════ */
+    .field {
+      background: var(--bg-2);
+      border: 1.5px solid var(--border);
+      border-radius: 12px;
+      color: var(--t1);
+      padding: 0.8rem 1rem;
+      font-size: 0.95rem;
+      font-family: 'DM Mono', monospace;
       width: 100%;
       outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      min-height: 52px;
+      transition: border-color 0.18s, box-shadow 0.18s;
+      min-height: 50px;
+      -moz-appearance: textfield;
     }
-    .neon-input:focus {
-      border-color: rgba(47,136,255,0.55);
-      box-shadow: 0 0 0 3px rgba(47,136,255,0.10), 0 0 20px rgba(47,136,255,0.08);
+    .field::-webkit-inner-spin-button,
+    .field::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    .field:focus {
+      border-color: rgba(56,189,248,0.5);
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.08);
     }
-    .neon-input::placeholder { color: var(--text-3); }
-    .neon-input-plain {
-      background: rgba(5,11,28,0.8);
-      border: 1.5px solid rgba(56,139,253,0.15);
-      border-radius: 14px;
-      color: var(--text-1);
-      padding: 0.875rem 1rem;
-      font-size: 1rem;
-      font-family: 'Space Grotesk', sans-serif;
-      width: 100%;
-      outline: none;
-      transition: border-color 0.2s, box-shadow 0.2s;
-      min-height: 52px;
-    }
-    .neon-input-plain:focus {
-      border-color: rgba(47,136,255,0.55);
-      box-shadow: 0 0 0 3px rgba(47,136,255,0.10);
-    }
-    .neon-input-plain option { background: #0a1428; }
+    .field::placeholder { color: var(--t3); }
+    .field option { background: var(--bg-3); }
 
-    /* ── Buttons ── */
+    .field-prefix {
+      position: relative;
+    }
+    .field-prefix .field { padding-left: 2.4rem; }
+    .field-prefix .prefix-sym {
+      position: absolute; left: 0.85rem; top: 50%; transform: translateY(-50%);
+      color: var(--t2); font-size: 0.85rem; font-weight: 500; pointer-events: none;
+      font-family: 'DM Mono', monospace;
+    }
+
+    .field-suffix {
+      position: relative;
+    }
+    .field-suffix .field { padding-right: 2.2rem; }
+    .field-suffix .suffix-sym {
+      position: absolute; right: 0.85rem; top: 50%; transform: translateY(-50%);
+      color: var(--t2); font-size: 0.85rem; pointer-events: none;
+    }
+
+    label.lbl {
+      display: block;
+      font-size: 0.65rem;
+      font-weight: 500;
+      letter-spacing: 0.09em;
+      text-transform: uppercase;
+      color: var(--t2);
+      margin-bottom: 0.45rem;
+      font-family: 'Syne', sans-serif;
+    }
+
+    /* ══════════════════════════════════════════
+       BUTTONS
+    ══════════════════════════════════════════ */
     .btn-primary {
-      background: linear-gradient(135deg, #1a5fcc 0%, #2f88ff 60%, #38a3ff 100%);
-      box-shadow: 0 4px 24px var(--blue-glow), inset 0 1px 0 rgba(255,255,255,0.15);
-      border-radius: 14px;
-      color: #fff;
-      font-family: 'Outfit', sans-serif;
-      font-weight: 600;
-      font-size: 1rem;
-      min-height: 52px;
-      padding: 0 1.5rem;
-      width: 100%;
-      cursor: pointer;
-      transition: box-shadow 0.2s, transform 0.15s;
+      background: linear-gradient(135deg, var(--cyan-dim) 0%, var(--cyan) 100%);
+      color: #040810;
+      font-family: 'Syne', sans-serif;
+      font-weight: 700;
+      font-size: 0.9rem;
+      letter-spacing: 0.04em;
       border: none;
-      letter-spacing: 0.01em;
+      border-radius: 12px;
+      min-height: 50px;
+      padding: 0 1.5rem;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+      transition: opacity 0.2s, transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 4px 20px rgba(56,189,248,0.3);
+      width: 100%;
     }
-    .btn-primary:hover {
-      box-shadow: 0 6px 36px rgba(47,136,255,0.55), inset 0 1px 0 rgba(255,255,255,0.15);
-      transform: translateY(-1px);
-    }
-    .btn-primary:active { transform: translateY(0); box-shadow: 0 2px 12px var(--blue-glow); }
-    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-primary:hover  { opacity: 0.92; transform: translateY(-1px); box-shadow: 0 6px 28px rgba(56,189,248,0.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-primary:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
 
     .btn-ghost {
       background: transparent;
       border: 1.5px solid var(--border);
+      border-radius: 10px;
+      color: var(--t2);
+      font-family: 'DM Mono', monospace;
+      font-size: 0.82rem;
+      min-height: 40px;
+      padding: 0 1rem;
+      cursor: pointer;
+      display: inline-flex; align-items: center; justify-content: center; gap: 0.45rem;
+      transition: all 0.18s;
+    }
+    .btn-ghost:hover { border-color: var(--border-hi); color: var(--t1); background: rgba(56,189,248,0.05); }
+
+    /* ══════════════════════════════════════════
+       AUTH SCREEN
+    ══════════════════════════════════════════ */
+    #auth-screen {
+      position: relative; z-index: 10;
+      min-height: 100vh;
+      display: flex; align-items: center; justify-content: center;
+      padding: 2rem 1rem;
+    }
+
+    .auth-wrap { width: 100%; max-width: 400px; }
+
+    .auth-logo {
+      display: flex; align-items: center; gap: 0.75rem;
+      margin-bottom: 2.5rem;
+      justify-content: center;
+    }
+    .auth-logo-icon {
+      width: 48px; height: 48px;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
       border-radius: 14px;
-      color: var(--text-2);
-      font-family: 'Space Grotesk', sans-serif;
-      font-weight: 500;
-      font-size: 0.9rem;
-      min-height: 48px;
-      padding: 0 1.25rem;
-      cursor: pointer;
-      transition: all 0.2s;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 6px 24px rgba(56,189,248,0.35);
+      flex-shrink: 0;
     }
-    .btn-ghost:hover { border-color: var(--border-hi); color: var(--text-1); background: rgba(47,136,255,0.06); }
+    .auth-logo-text { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.7rem; color: var(--t1); }
+    .auth-logo-text span { color: var(--cyan); }
 
-    /* ── Price range cards ── */
-    .range-card {
-      border-radius: 18px;
-      padding: 1.1rem 1.25rem;
-      border: 1px solid;
-      transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+    .auth-card { padding: 2rem; }
+
+    .auth-tabs {
+      display: flex; gap: 0.25rem;
+      background: var(--bg);
+      border-radius: 10px; padding: 0.25rem;
+      margin-bottom: 1.75rem;
     }
-    .range-card:hover { transform: translateY(-3px); }
-    .range-card.floor {
-      background: linear-gradient(135deg, rgba(255,77,109,0.12), rgba(255,77,109,0.04));
-      border-color: rgba(255,77,109,0.25);
+    .auth-tab {
+      flex: 1; padding: 0.55rem;
+      border-radius: 8px;
+      font-family: 'Syne', sans-serif; font-size: 0.85rem; font-weight: 600;
+      color: var(--t2); cursor: pointer; text-align: center;
+      transition: all 0.18s; border: none; background: none;
     }
-    .range-card.recommended {
-      background: linear-gradient(135deg, rgba(47,136,255,0.18), rgba(47,136,255,0.06));
-      border-color: rgba(47,136,255,0.4);
-      box-shadow: 0 4px 30px rgba(47,136,255,0.15);
-    }
-    .range-card.premium {
-      background: linear-gradient(135deg, rgba(0,229,160,0.15), rgba(0,229,160,0.04));
-      border-color: rgba(0,229,160,0.3);
+    .auth-tab.active { background: var(--surface-2); color: var(--cyan); }
+    .auth-tab:hover:not(.active) { color: var(--t1); }
+
+    .auth-tagline {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--t3);
+      margin-top: 1.25rem;
+      letter-spacing: 0.03em;
     }
 
-    /* pop animation */
-    @keyframes cardPop {
-      0%   { transform: scale(1); }
-      40%  { transform: scale(1.04); }
-      70%  { transform: scale(0.98); }
-      100% { transform: scale(1); }
-    }
-    .pop { animation: cardPop 0.35s cubic-bezier(.34,1.56,.64,1); }
+    /* ══════════════════════════════════════════
+       APP SHELL
+    ══════════════════════════════════════════ */
+    #app-screen { position: relative; z-index: 10; min-height: 100vh; display: flex; flex-direction: column; }
 
-    /* ── Range slider ── */
-    .profit-slider {
-      -webkit-appearance: none;
-      appearance: none;
-      height: 8px;
-      border-radius: 999px;
-      outline: none;
-      cursor: pointer;
+    /* ── Top bar ── */
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(8,12,20,0.88);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--border);
+      height: 58px;
+      display: flex; align-items: center;
+    }
+    .topbar-inner {
+      max-width: 1280px; margin: 0 auto; width: 100%;
+      padding: 0 1.5rem;
+      display: flex; align-items: center; justify-content: space-between;
+      gap: 1rem;
+    }
+    .topbar-brand {
+      display: flex; align-items: center; gap: 0.6rem;
+      font-family: 'Syne', sans-serif; font-weight: 800;
+      font-size: 1.15rem; color: var(--t1);
+    }
+    .topbar-brand-icon {
+      width: 30px; height: 30px;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      box-shadow: 0 3px 10px rgba(56,189,248,0.3);
+    }
+    .topbar-brand .accent { color: var(--cyan); }
+
+    .topbar-nav { display: flex; align-items: center; gap: 0.25rem; }
+    .topbar-tab {
+      display: flex; align-items: center; gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 9px;
+      font-size: 0.8rem; font-weight: 500;
+      color: var(--t2); cursor: pointer;
+      transition: all 0.18s; border: 1px solid transparent;
+      background: none;
+      font-family: 'DM Mono', monospace;
+    }
+    .topbar-tab.active { background: rgba(56,189,248,0.12); color: var(--cyan); border-color: rgba(56,189,248,0.2); }
+    .topbar-tab:hover:not(.active) { color: var(--t1); background: rgba(255,255,255,0.04); }
+
+    .topbar-right { display: flex; align-items: center; gap: 0.75rem; }
+    .topbar-email { font-size: 0.75rem; color: var(--t3); display: none; }
+    @media(min-width:640px) { .topbar-email { display: block; } }
+
+    /* ── Main layout ── */
+    .app-main {
+      flex: 1;
+      max-width: 1280px;
+      margin: 0 auto;
       width: 100%;
-      background: linear-gradient(to right, var(--blue) var(--pct, 50%), rgba(56,139,253,0.15) var(--pct, 50%));
-      transition: background 0.1s;
-    }
-    .profit-slider::-webkit-slider-thumb {
-      -webkit-appearance: none;
-      width: 28px; height: 28px;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2f88ff, #38a3ff);
-      box-shadow: 0 0 0 4px rgba(47,136,255,0.25), 0 4px 12px rgba(47,136,255,0.4);
-      cursor: grab;
-      transition: box-shadow 0.2s, transform 0.2s;
-    }
-    .profit-slider::-webkit-slider-thumb:active {
-      cursor: grabbing;
-      transform: scale(1.15);
-      box-shadow: 0 0 0 8px rgba(47,136,255,0.2), 0 4px 16px rgba(47,136,255,0.5);
-    }
-    .profit-slider::-moz-range-thumb {
-      width: 28px; height: 28px;
-      border: none;
-      border-radius: 50%;
-      background: linear-gradient(135deg, #2f88ff, #38a3ff);
-      box-shadow: 0 0 0 4px rgba(47,136,255,0.25);
-      cursor: grab;
+      padding: 1.5rem 1.25rem 3rem;
     }
 
-    /* ── Profitability zones on slider track ── */
-    .slider-zones {
-      position: relative;
-      height: 6px;
-      border-radius: 999px;
-      overflow: hidden;
-      background: linear-gradient(to right,
-        rgba(255,77,109,0.5) 0%,
-        rgba(255,179,0,0.5) 33%,
-        rgba(47,136,255,0.7) 60%,
-        rgba(0,229,160,0.7) 100%
-      );
-    }
-
-    /* ── Nav tabs ── */
-    .nav-tab {
-      display: flex; align-items: center; gap: 0.5rem;
-      padding: 0.65rem 1rem;
-      border-radius: 12px;
-      font-size: 0.875rem;
-      font-weight: 500;
-      color: var(--text-2);
-      cursor: pointer;
-      transition: all 0.2s;
-      border: 1px solid transparent;
-      min-height: 44px;
-    }
-    .nav-tab.active {
-      background: rgba(47,136,255,0.15);
-      color: #93c5fd;
-      border-color: rgba(47,136,255,0.3);
-    }
-    .nav-tab:hover:not(.active) { background: rgba(255,255,255,0.04); color: var(--text-1); }
-
-    /* ── Auth tabs ── */
-    .auth-tab { flex: 1; padding: 0.65rem; border-radius: 10px; font-size: 0.9rem; font-weight: 500; text-align: center; cursor: pointer; transition: all 0.2s; color: var(--text-2); }
-    .auth-tab.active { background: rgba(47,136,255,0.2); color: #93c5fd; }
-
-    /* ── Section visibility ── */
+    /* ── Sections ── */
     .section { display: none; }
     .section.active { display: block; }
 
-    /* ── Toast ── */
+    /* ── Desktop two-column grid ── */
+    .calc-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media(min-width: 900px) {
+      .calc-grid {
+        grid-template-columns: 380px 1fr;
+        align-items: start;
+      }
+      .calc-col-right {
+        display: flex; flex-direction: column; gap: 1.25rem;
+      }
+    }
+
+    /* ══════════════════════════════════════════
+       PRICE RANGE CARDS
+    ══════════════════════════════════════════ */
+    .price-trio {
+      display: grid; grid-template-columns: repeat(3,1fr); gap: 0.75rem;
+    }
+
+    .p-card {
+      border-radius: 14px; padding: 1rem 0.85rem;
+      border: 1px solid;
+      text-align: center;
+      transition: transform 0.25s cubic-bezier(.34,1.56,.64,1), box-shadow 0.25s;
+      cursor: default;
+    }
+    .p-card:hover { transform: translateY(-3px); }
+
+    .p-card.c-floor {
+      background: linear-gradient(160deg, rgba(245,71,107,0.10), rgba(245,71,107,0.03));
+      border-color: rgba(245,71,107,0.22);
+    }
+    .p-card.c-target {
+      background: linear-gradient(160deg, rgba(56,189,248,0.14), rgba(56,189,248,0.04));
+      border-color: rgba(56,189,248,0.35);
+      box-shadow: 0 6px 28px rgba(56,189,248,0.10);
+    }
+    .p-card.c-prem {
+      background: linear-gradient(160deg, rgba(0,214,143,0.12), rgba(0,214,143,0.03));
+      border-color: rgba(0,214,143,0.25);
+    }
+
+    .p-card-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; margin-right: 4px; }
+    .p-card-label { font-family: 'Syne', sans-serif; font-size: 0.62rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .p-card-value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.35rem; color: var(--t1); margin: 0.35rem 0 0.2rem; line-height: 1; }
+    .p-card-sub { font-size: 0.65rem; color: var(--t3); }
+
+    /* Pop animation */
+    @keyframes pop {
+      0%   { transform: scale(1); }
+      40%  { transform: scale(1.05); }
+      75%  { transform: scale(0.97); }
+      100% { transform: scale(1); }
+    }
+    .pop { animation: pop 0.32s cubic-bezier(.34,1.56,.64,1); }
+
+    /* ══════════════════════════════════════════
+       PRICE SLIDER
+    ══════════════════════════════════════════ */
+    .price-slider {
+      -webkit-appearance: none; appearance: none;
+      height: 6px; border-radius: 999px;
+      width: 100%; outline: none; cursor: pointer;
+      background: linear-gradient(to right, var(--cyan) var(--pct,50%), var(--surface-2) var(--pct,50%));
+      transition: background 0.08s;
+    }
+    .price-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px; height: 24px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.25), 0 3px 12px rgba(56,189,248,0.4);
+      cursor: grab; transition: box-shadow 0.18s, transform 0.18s;
+    }
+    .price-slider::-webkit-slider-thumb:active { cursor: grabbing; transform: scale(1.2); }
+    .price-slider::-moz-range-thumb {
+      width: 24px; height: 24px; border: none; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
+      box-shadow: 0 0 0 3px rgba(56,189,248,0.25);
+      cursor: grab;
+    }
+
+    /* zone bar */
+    .zone-bar {
+      height: 4px; border-radius: 999px;
+      background: linear-gradient(to right,
+        rgba(245,71,107,0.55)  0%,
+        rgba(251,146,60,0.55) 30%,
+        rgba(56,189,248,0.7)  60%,
+        rgba(0,214,143,0.75) 100%
+      );
+      margin-bottom: 0.6rem;
+    }
+
+    /* Stat boxes */
+    .stat-box {
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      text-align: center;
+    }
+    .stat-box-label { font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.07em; color: var(--t2); font-family: 'Syne', sans-serif; font-weight: 600; margin-bottom: 0.3rem; }
+    .stat-box-value { font-family: 'Syne', sans-serif; font-weight: 800; font-size: 1.25rem; }
+
+    /* ══════════════════════════════════════════
+       CHART
+    ══════════════════════════════════════════ */
+    .chart-container { position: relative; height: 220px; }
+    @media(min-width:900px) { .chart-container { height: 260px; } }
+
+    /* ══════════════════════════════════════════
+       SECTION HEADER
+    ══════════════════════════════════════════ */
+    .sec-head {
+      display: flex; align-items: center; gap: 0.6rem;
+      margin-bottom: 1.1rem;
+    }
+    .sec-head-icon {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .sec-head-title { font-family: 'Syne', sans-serif; font-weight: 700; font-size: 0.95rem; color: var(--t1); }
+    .sec-head-badge {
+      font-size: 0.62rem; font-family: 'Syne', sans-serif; font-weight: 700;
+      letter-spacing: 0.06em; text-transform: uppercase;
+      padding: 0.15rem 0.5rem; border-radius: 999px;
+      margin-left: auto; flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       FORMULA ROW
+    ══════════════════════════════════════════ */
+    .formula-row {
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 0.65rem 0.9rem;
+      font-size: 0.68rem;
+      color: var(--t2);
+      line-height: 1.7;
+      font-family: 'DM Mono', monospace;
+    }
+
+    /* ══════════════════════════════════════════
+       SETTINGS
+    ══════════════════════════════════════════ */
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 1.25rem;
+    }
+    @media(min-width:640px) {
+      .settings-grid { grid-template-columns: 1fr 1fr; }
+    }
+    @media(min-width:900px) {
+      .settings-grid { grid-template-columns: 1fr 1fr 1fr; }
+    }
+
+    .account-pill {
+      display: flex; align-items: center; gap: 0.85rem;
+      background: var(--bg-2);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.85rem 1rem;
+      margin-bottom: 1.25rem;
+    }
+    .avatar {
+      width: 38px; height: 38px; border-radius: 50%;
+      background: linear-gradient(135deg, var(--cyan-dim), var(--cyan));
+      display: flex; align-items: center; justify-content: center;
+      font-family: 'Syne', sans-serif; font-weight: 800; font-size: 0.95rem;
+      color: #040810; flex-shrink: 0;
+    }
+
+    /* ══════════════════════════════════════════
+       TOAST
+    ══════════════════════════════════════════ */
     #toast {
-      position: fixed; bottom: 1.5rem; left: 50%; transform: translateX(-50%) translateY(100px);
-      z-index: 9999; padding: 0.75rem 1.5rem; border-radius: 12px;
-      font-size: 0.875rem; font-weight: 500; white-space: nowrap;
+      position: fixed; bottom: 1.25rem; left: 50%;
+      transform: translateX(-50%) translateY(80px);
+      z-index: 9999; padding: 0.7rem 1.4rem;
+      border-radius: 10px; font-size: 0.8rem; font-weight: 500;
+      white-space: nowrap; pointer-events: none;
       transition: transform 0.3s cubic-bezier(.34,1.56,.64,1), opacity 0.3s;
-      opacity: 0; pointer-events: none;
+      opacity: 0; font-family: 'DM Mono', monospace;
     }
     #toast.show { transform: translateX(-50%) translateY(0); opacity: 1; }
-    #toast.success { background: rgba(0,229,160,0.2); border: 1px solid rgba(0,229,160,0.4); color: #00e5a0; }
-    #toast.error   { background: rgba(255,77,109,0.2); border: 1px solid rgba(255,77,109,0.4); color: #ff8fa3; }
-    #toast.info    { background: rgba(47,136,255,0.2); border: 1px solid rgba(47,136,255,0.4); color: #93c5fd; }
+    #toast.success { background: rgba(0,214,143,0.18);  border: 1px solid rgba(0,214,143,0.35);  color: var(--green); }
+    #toast.error   { background: rgba(245,71,107,0.18); border: 1px solid rgba(245,71,107,0.35); color: var(--red); }
+    #toast.info    { background: rgba(56,189,248,0.15); border: 1px solid rgba(56,189,248,0.3);  color: var(--cyan); }
 
-    /* ── Spinner ── */
-    .spin { animation: spin360 0.7s linear infinite; }
+    /* ══════════════════════════════════════════
+       SPINNER
+    ══════════════════════════════════════════ */
+    .spin { animation: spin360 0.65s linear infinite; display: inline-block; }
     @keyframes spin360 { to { transform: rotate(360deg); } }
 
-    /* ── Label ── */
-    .field-label { font-size: 0.72rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-2); margin-bottom: 0.5rem; display: block; }
-
-    /* ── Badge ── */
-    .badge { display: inline-flex; align-items: center; padding: 0.2rem 0.6rem; border-radius: 999px; font-size: 0.7rem; font-weight: 600; letter-spacing: 0.04em; }
-
-    /* ── Gradient text ── */
-    .text-gradient-blue { background: linear-gradient(135deg, #60a5fa, #2f88ff); -webkit-background-clip: text; background-clip: text; color: transparent; }
-    .text-gradient-green { background: linear-gradient(135deg, #00e5a0, #34d399); -webkit-background-clip: text; background-clip: text; color: transparent; }
-
-    /* ── Chart container ── */
-    .chart-wrap { position: relative; height: 200px; }
-
-    /* ── YT CTA ── */
-    .yt-cta {
-      background: linear-gradient(135deg, rgba(185,28,28,0.15), rgba(239,68,68,0.06));
-      border: 1px solid rgba(239,68,68,0.2);
-      border-radius: 16px;
-      transition: border-color 0.2s, background 0.2s;
-    }
-    .yt-cta:hover { border-color: rgba(239,68,68,0.45); background: linear-gradient(135deg, rgba(185,28,28,0.22), rgba(239,68,68,0.1)); }
-
-    /* Formula pill */
-    .formula-pill {
-      background: rgba(5,11,28,0.8);
-      border: 1px solid rgba(47,136,255,0.18);
-      border-radius: 12px;
-      padding: 0.75rem 1rem;
-      font-size: 0.78rem;
-      color: var(--text-2);
-      line-height: 1.6;
-    }
-
-    /* Staggered entry animation */
+    /* ══════════════════════════════════════════
+       FADE-UP ENTRY
+    ══════════════════════════════════════════ */
     @keyframes fadeUp {
-      from { opacity: 0; transform: translateY(16px); }
+      from { opacity: 0; transform: translateY(14px); }
       to   { opacity: 1; transform: translateY(0); }
     }
-    .fade-up { animation: fadeUp 0.45s ease both; }
-    .fade-up-1 { animation-delay: 0.05s; }
-    .fade-up-2 { animation-delay: 0.12s; }
-    .fade-up-3 { animation-delay: 0.19s; }
-    .fade-up-4 { animation-delay: 0.26s; }
-    .fade-up-5 { animation-delay: 0.33s; }
+    .fu  { animation: fadeUp 0.4s ease both; }
+    .fu1 { animation-delay: 0.04s; }
+    .fu2 { animation-delay: 0.10s; }
+    .fu3 { animation-delay: 0.16s; }
+    .fu4 { animation-delay: 0.22s; }
+    .fu5 { animation-delay: 0.28s; }
+    .fu6 { animation-delay: 0.34s; }
 
-    /* ── Scrollbar ── */
-    ::-webkit-scrollbar { width: 4px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: rgba(47,136,255,0.2); border-radius: 4px; }
+    /* ══════════════════════════════════════════
+       DIVIDER
+    ══════════════════════════════════════════ */
+    .divider {
+      height: 1px; background: var(--border); margin: 1.1rem 0;
+    }
 
-    /* ── Safe area for notch phones ── */
-    .safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0); }
+    /* ══════════════════════════════════════════
+       INPUT GRID HELPERS
+    ══════════════════════════════════════════ */
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.85rem; }
+    .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 0.75rem; }
+    .grid-4 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem; }
+    @media(min-width:480px) { .grid-4 { grid-template-columns: 1fr 1fr 1fr 1fr; } }
+
+    /* ══════════════════════════════════════════
+       SAFE AREA
+    ══════════════════════════════════════════ */
+    .safe-pb { padding-bottom: calc(1rem + env(safe-area-inset-bottom, 0px)); }
+
+    /* ══════════════════════════════════════════
+       CHART LEGEND
+    ══════════════════════════════════════════ */
+    .chart-legend { display: flex; align-items: center; gap: 1.25rem; margin-top: 0.85rem; }
+    .legend-item { display: flex; align-items: center; gap: 0.45rem; font-size: 0.7rem; color: var(--t2); }
+    .legend-line { width: 20px; height: 2px; border-radius: 1px; }
+    .legend-dash { width: 20px; height: 0; border-top: 2px dashed rgba(245,71,107,0.6); }
+
+    /* ══════════════════════════════════════════
+       YT CTA
+    ══════════════════════════════════════════ */
+    .yt-banner {
+      background: linear-gradient(135deg, rgba(185,28,28,0.12), rgba(239,68,68,0.05));
+      border: 1px solid rgba(239,68,68,0.18);
+      border-radius: var(--r); padding: 1rem 1.25rem;
+      display: flex; align-items: center; gap: 1rem;
+      text-decoration: none; transition: border-color 0.2s, background 0.2s;
+    }
+    .yt-banner:hover { border-color: rgba(239,68,68,0.4); }
+    .yt-icon { width: 40px; height: 40px; background: #dc2626; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+
+    /* ══════════════════════════════════════════
+       MATH EXPLAINER
+    ══════════════════════════════════════════ */
+    .explainer-row {
+      display: flex; flex-direction: column; gap: 0.6rem;
+      font-size: 0.75rem; line-height: 1.65; color: var(--t2);
+      font-family: 'DM Mono', monospace;
+    }
+    .explainer-row p strong { font-family: 'Syne', sans-serif; }
   </style>
 </head>
 <body>
 
-<!-- Background layers -->
-<div class="starfield"></div>
-<div class="glow-blob glow-blob-1"></div>
-<div class="glow-blob glow-blob-2"></div>
-
 <!-- Toast -->
 <div id="toast"></div>
 
-<!-- ═══════════════════════════════════════════
+<!-- ═══════════════════════════════════════════════════════
      AUTH SCREEN
-═══════════════════════════════════════════ -->
-<div id="auth-screen" class="relative z-10 min-h-screen flex items-center justify-center px-4 py-10">
-  <div class="w-full max-w-sm fade-up">
+═══════════════════════════════════════════════════════ -->
+<div id="auth-screen" class="z-app">
+  <div class="auth-wrap fu">
 
-    <!-- Logo -->
-    <div class="text-center mb-8">
-      <div class="inline-flex items-center justify-center w-14 h-14 rounded-2xl mb-4"
-        style="background: linear-gradient(135deg,#1a5fcc,#2f88ff); box-shadow: 0 8px 32px rgba(47,136,255,0.4)">
-        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-          <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>
+    <div class="auth-logo">
+      <div class="auth-logo-icon">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#040810" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
         </svg>
       </div>
-      <h1 class="font-display font-bold text-3xl text-white tracking-tight">ProfitPilot <span class="text-gradient-blue">AI</span></h1>
-      <p class="text-sm mt-1" style="color:var(--text-2)">Dynamic Range Engine v2</p>
+      <span class="auth-logo-text">Rib<span>hi</span></span>
     </div>
 
-    <!-- Card -->
-    <div class="glass glass-hi p-6">
-      <!-- Tabs -->
-      <div class="flex bg-black/30 rounded-xl p-1 mb-5 gap-1">
+    <div class="card auth-card card-hi">
+      <div class="auth-tabs">
         <button id="atab-login"  onclick="switchAuthTab('login')"  class="auth-tab active">Sign In</button>
         <button id="atab-signup" onclick="switchAuthTab('signup')" class="auth-tab">Sign Up</button>
       </div>
 
-      <div class="space-y-4">
+      <div style="display:flex; flex-direction:column; gap:1rem;">
         <div>
-          <label class="field-label">Email Address</label>
-          <input id="a-email" type="email" placeholder="you@example.com" class="neon-input-plain"/>
+          <label class="lbl">Email Address</label>
+          <input id="a-email" type="email" placeholder="you@example.com" class="field" autocomplete="email"/>
         </div>
         <div>
-          <label class="field-label">Password</label>
-          <input id="a-pass" type="password" placeholder="••••••••••" class="neon-input-plain"/>
+          <label class="lbl">Password</label>
+          <input id="a-pass" type="password" placeholder="••••••••••" class="field" autocomplete="current-password"/>
         </div>
       </div>
 
-      <button id="a-btn" onclick="handleAuth()" class="btn-primary mt-5 flex items-center justify-center gap-2">
-        <svg id="a-spin" class="hidden spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+      <button id="a-btn" onclick="handleAuth()" class="btn-primary" style="margin-top:1.25rem;">
+        <svg id="a-spin" class="hidden spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
         <span id="a-btn-text">Sign In</span>
       </button>
 
-      <p class="text-center text-xs mt-4" style="color:var(--text-3)">Secured by Supabase Auth</p>
+      <p class="auth-tagline">Secured by Supabase · Profit Analytics Engine</p>
     </div>
 
-    <!-- YouTube CTA -->
-    <a href="https://www.youtube.com" target="_blank" class="yt-cta mt-4 flex items-center gap-3 p-4 cursor-pointer group">
-      <div class="w-10 h-10 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
+    <a href="https://www.youtube.com" target="_blank" class="yt-banner" style="margin-top:1rem; text-decoration:none;">
+      <div class="yt-icon">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
       </div>
-      <div class="flex-1 min-w-0">
-        <p class="text-sm font-semibold text-white">Subscribe for AI Strategy Insights</p>
-        <p class="text-xs truncate" style="color:var(--text-3)">Pricing, Growth & Global E-commerce</p>
+      <div>
+        <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; color:var(--t1);">AI Strategy & Pricing Insights</p>
+        <p style="font-size:0.72rem; color:var(--t3); margin-top:0.15rem;">Subscribe · E-commerce & Global Growth</p>
       </div>
-      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-red-500 opacity-60 group-hover:opacity-100 transition-opacity"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+      <svg style="margin-left:auto; color:#ef4444; opacity:0.7; flex-shrink:0;" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
     </a>
   </div>
 </div>
 
-<!-- ═══════════════════════════════════════════
+<!-- ═══════════════════════════════════════════════════════
      APP SCREEN
-═══════════════════════════════════════════ -->
-<div id="app-screen" class="hidden relative z-10 flex flex-col min-h-screen">
+═══════════════════════════════════════════════════════ -->
+<div id="app-screen" class="hidden z-app">
 
-  <!-- Sticky Nav -->
-  <header class="sticky top-0 z-50" style="background: rgba(5,11,28,0.85); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);">
-    <div class="max-w-xl mx-auto px-4 h-14 flex items-center justify-between">
-      <div class="flex items-center gap-2.5">
-        <div class="w-8 h-8 rounded-xl flex items-center justify-center" style="background: linear-gradient(135deg,#1a5fcc,#2f88ff); box-shadow: 0 4px 12px rgba(47,136,255,0.35)">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+  <!-- Top bar -->
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="topbar-brand">
+        <div class="topbar-brand-icon">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#040810" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/>
+          </svg>
         </div>
-        <span class="font-display font-bold text-lg text-white tracking-tight">ProfitPilot <span class="text-gradient-blue">AI</span></span>
-        <span class="badge" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3); color:#60a5fa;">v2</span>
+        Rib<span class="accent">hi</span>
+        <span style="font-size:0.6rem; font-weight:600; letter-spacing:0.06em; background:rgba(56,189,248,0.12); border:1px solid rgba(56,189,248,0.25); color:var(--cyan); border-radius:999px; padding:0.15rem 0.5rem; margin-left:0.1rem;">v2</span>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="nav-email" class="text-xs hidden sm:block" style="color:var(--text-3)"></span>
-        <button onclick="signOut()" class="btn-ghost flex items-center gap-1.5 text-xs px-3 py-2 min-h-0">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Out
+
+      <nav class="topbar-nav">
+        <button onclick="showSection('calculator')" id="ntab-calculator" class="topbar-tab active">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/></svg>
+          Calculator
+        </button>
+        <button onclick="showSection('settings')" id="ntab-settings" class="topbar-tab">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Settings
+        </button>
+      </nav>
+
+      <div class="topbar-right">
+        <span id="nav-email" class="topbar-email"></span>
+        <button onclick="signOut()" class="btn-ghost">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+          Sign Out
         </button>
       </div>
     </div>
   </header>
 
-  <!-- Bottom navigation (mobile-first) -->
-  <div class="sticky top-14 z-40" style="background: rgba(5,11,28,0.9); backdrop-filter: blur(20px); border-bottom: 1px solid var(--border);">
-    <div class="max-w-xl mx-auto px-3 py-2 flex gap-1">
-      <button onclick="showSection('calculator')" id="ntab-calculator" class="nav-tab active flex-1 justify-center">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" y1="6" x2="16" y2="6"/><line x1="8" y1="10" x2="16" y2="10"/><line x1="8" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="12" y2="18"/></svg>
-        Calculator
-      </button>
-      <button onclick="showSection('settings')" id="ntab-settings" class="nav-tab flex-1 justify-center">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-        Settings
-      </button>
-    </div>
-  </div>
+  <!-- Main content -->
+  <main class="app-main safe-pb">
 
-  <!-- ── Main content ── -->
-  <main class="max-w-xl mx-auto w-full px-4 py-5 flex-1 safe-bottom" style="padding-bottom: 2rem;">
+    <!-- ══════════════ CALCULATOR ══════════════ -->
+    <div id="section-calculator" class="section active">
+      <div class="calc-grid">
 
-    <!-- ════════════ CALCULATOR SECTION ════════════ -->
-    <div id="section-calculator" class="section active space-y-4">
+        <!-- LEFT COLUMN: Inputs -->
+        <div style="display:flex; flex-direction:column; gap:1.25rem;">
 
-      <!-- Input card -->
-      <div class="glass p-5 fade-up fade-up-1">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
-          </div>
-          <h2 class="font-display font-semibold text-base text-white">Product Inputs</h2>
-        </div>
-        <div class="grid grid-cols-2 gap-3">
-          <div>
-            <label class="field-label">Product Cost</label>
-            <div class="relative">
-              <span id="sym-cost" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
-              <input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
+          <!-- Product Inputs -->
+          <div class="card fu fu1" style="padding:1.25rem;">
+            <div class="sec-head">
+              <div class="sec-head-icon" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><path d="M20 7H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+              </div>
+              <span class="sec-head-title">Product Inputs</span>
+            </div>
+            <div class="grid-2">
+              <div>
+                <label class="lbl">Product Cost</label>
+                <div class="field-prefix">
+                  <span class="prefix-sym" id="sym-cost">$</span>
+                  <input id="inp-cost" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculateAll()"/>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Ads / CPA</label>
+                <div class="field-prefix">
+                  <span class="prefix-sym" id="sym-ads">$</span>
+                  <input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculateAll()"/>
+                </div>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="field-label">Ads / Marketing</label>
-            <div class="relative">
-              <span id="sym-ads" class="absolute left-3.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
-              <input id="inp-ads" type="number" min="0" step="0.01" placeholder="0.00" class="neon-input" oninput="calculate()"/>
+
+          <!-- Global Defaults -->
+          <div class="card fu fu2" style="padding:1.25rem;">
+            <div class="sec-head">
+              <div class="sec-head-icon" style="background:rgba(0,214,143,0.1); border:1px solid rgba(0,214,143,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              </div>
+              <span class="sec-head-title">Global Defaults</span>
+              <span class="sec-head-badge" style="background:rgba(0,214,143,0.1); border:1px solid rgba(0,214,143,0.22); color:var(--green);">Auto-loaded</span>
+            </div>
+            <div class="grid-4">
+              <div>
+                <label class="lbl">Tax %</label>
+                <div class="field-suffix">
+                  <input id="inp-tax" type="number" min="0" max="99" step="0.1" placeholder="0" class="field" oninput="calculateAll()"/>
+                  <span class="suffix-sym">%</span>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Shipping</label>
+                <div class="field-prefix">
+                  <span class="prefix-sym" id="sym-ship">$</span>
+                  <input id="inp-ship" type="number" min="0" step="0.01" placeholder="0.00" class="field" oninput="calculateAll()"/>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Margin %</label>
+                <div class="field-suffix">
+                  <input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="0" class="field" oninput="calculateAll()"/>
+                  <span class="suffix-sym">%</span>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Refund %</label>
+                <div class="field-suffix">
+                  <input id="inp-refund" type="number" min="0" max="99" step="0.1" placeholder="0" class="field" oninput="calculateAll()"/>
+                  <span class="suffix-sym">%</span>
+                </div>
+              </div>
             </div>
           </div>
-        </div>
-      </div>
 
-      <!-- Defaults override card -->
-      <div class="glass p-5 fade-up fade-up-2">
-        <div class="flex items-center justify-between mb-4">
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          <!-- Formula reference -->
+          <div class="formula-row fu fu3">
+            <span style="color:var(--red); font-weight:600;">Floor</span> = (Cost+Ads+Ship) ÷ [(1−r)(1−t)]&nbsp;&nbsp;·&nbsp;&nbsp;
+            <span style="color:var(--cyan); font-weight:600;">Target</span> = Total ÷ [(1−r)(1−t) − m]&nbsp;&nbsp;·&nbsp;&nbsp;
+            <span style="color:var(--green); font-weight:600;">Premium</span> = Target × 1.15
+          </div>
+
+        </div>
+
+        <!-- RIGHT COLUMN -->
+        <div class="calc-col-right">
+
+          <!-- Price Range Cards -->
+          <div class="card card-hi fu fu2" style="padding:1.25rem;">
+            <div class="sec-head">
+              <div class="sec-head-icon" style="background:rgba(246,201,14,0.1); border:1px solid rgba(246,201,14,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
+              </div>
+              <span class="sec-head-title">Strategic Price Range</span>
             </div>
-            <h2 class="font-display font-semibold text-base text-white">Global Defaults</h2>
-          </div>
-          <span class="badge" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25); color:#00e5a0;">Auto-loaded</span>
-        </div>
-        <div class="grid grid-cols-3 gap-3">
-          <div>
-            <label class="field-label">Tax %</label>
-            <input id="inp-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-input-plain text-center" oninput="calculate()"/>
-          </div>
-          <div>
-            <label class="field-label">Shipping</label>
-            <div class="relative">
-              <span id="sym-ship" class="absolute left-2.5 top-1/2 -translate-y-1/2 text-sm font-medium" style="color:var(--text-2)">$</span>
-              <input id="inp-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-input" style="padding-left:1.75rem" oninput="calculate()"/>
+
+            <div class="price-trio">
+              <div class="p-card c-floor" id="card-floor">
+                <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:2px;">
+                  <span class="p-card-dot" style="background:var(--red);"></span>
+                  <span class="p-card-label" style="color:var(--red);">Floor</span>
+                </div>
+                <div id="val-floor" class="p-card-value">—</div>
+                <div class="p-card-sub">Break-even</div>
+              </div>
+              <div class="p-card c-target" id="card-rec">
+                <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:2px;">
+                  <span class="p-card-dot" style="background:var(--cyan);"></span>
+                  <span class="p-card-label" style="color:var(--cyan);">Target</span>
+                </div>
+                <div id="val-rec" class="p-card-value">—</div>
+                <div class="p-card-sub">Recommended</div>
+              </div>
+              <div class="p-card c-prem" id="card-prem">
+                <div style="display:flex; align-items:center; justify-content:center; gap:4px; margin-bottom:2px;">
+                  <span class="p-card-dot" style="background:var(--green);"></span>
+                  <span class="p-card-label" style="color:var(--green);">Premium</span>
+                </div>
+                <div id="val-prem" class="p-card-value">—</div>
+                <div class="p-card-sub">+15% buffer</div>
+              </div>
             </div>
           </div>
-          <div>
-            <label class="field-label">Margin %</label>
-            <input id="inp-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-input-plain text-center" oninput="calculate()"/>
-          </div>
-        </div>
-      </div>
 
-      <!-- ── Strategic Price Range ── -->
-      <div class="glass glass-hi p-5 fade-up fade-up-3">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 2L2 7l10 5 10-5-10-5z"/><path d="M2 17l10 5 10-5"/><path d="M2 12l10 5 10-5"/></svg>
-          </div>
-          <h2 class="font-display font-semibold text-base text-white">Strategic Price Range</h2>
-        </div>
-
-        <!-- 3 Range cards -->
-        <div class="grid grid-cols-3 gap-2.5 mb-4" id="range-cards">
-          <div class="range-card floor text-center" id="card-floor">
-            <div class="flex items-center justify-center gap-1 mb-1">
-              <div class="w-2 h-2 rounded-full" style="background:var(--rose)"></div>
-              <span class="text-xs font-semibold uppercase tracking-wider" style="color:var(--rose)">Floor</span>
+          <!-- Price Explorer Slider -->
+          <div class="card fu fu3" style="padding:1.25rem;">
+            <div class="sec-head">
+              <div class="sec-head-icon" style="background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--amber)" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              </div>
+              <span class="sec-head-title">Price Explorer</span>
+              <div style="margin-left:auto; text-align:right;">
+                <div style="font-size:0.65rem; color:var(--t2); text-transform:uppercase; letter-spacing:0.06em; font-family:'Syne',sans-serif;">Testing</div>
+                <div id="slider-price-display" style="font-family:'Syne',sans-serif; font-weight:800; font-size:1.1rem; color:var(--t1); line-height:1.1;">—</div>
+              </div>
             </div>
-            <p id="val-floor" class="font-display font-bold text-xl text-white mt-0.5">—</p>
-            <p class="text-xs mt-1" style="color:var(--text-3)">Break-even</p>
-          </div>
-          <div class="range-card recommended text-center" id="card-rec">
-            <div class="flex items-center justify-center gap-1 mb-1">
-              <div class="w-2 h-2 rounded-full" style="background:var(--blue)"></div>
-              <span class="text-xs font-semibold uppercase tracking-wider" style="color:#60a5fa">Target</span>
+
+            <div class="zone-bar"></div>
+            <input id="price-slider" type="range" min="0" max="1000" step="0.01"
+              class="price-slider" style="--pct:50%; display:block; width:100%; margin-bottom:0.5rem;"
+              oninput="onSliderMove(this.value)"/>
+
+            <div style="display:flex; justify-content:space-between; font-size:0.68rem; color:var(--t3); margin-bottom:1rem; font-family:'DM Mono',monospace;">
+              <span id="slider-min-label">Floor</span>
+              <span id="slider-rec-label">Target</span>
+              <span id="slider-max-label">Premium</span>
             </div>
-            <p id="val-rec" class="font-display font-bold text-xl text-white mt-0.5">—</p>
-            <p class="text-xs mt-1" style="color:var(--text-3)">Recommended</p>
-          </div>
-          <div class="range-card premium text-center" id="card-prem">
-            <div class="flex items-center justify-center gap-1 mb-1">
-              <div class="w-2 h-2 rounded-full" style="background:var(--emerald)"></div>
-              <span class="text-xs font-semibold uppercase tracking-wider" style="color:var(--emerald)">Premium</span>
+
+            <div class="grid-2">
+              <div class="stat-box">
+                <div class="stat-box-label">Net Profit</div>
+                <div id="slider-profit" class="stat-box-value" style="color:var(--t1);">—</div>
+              </div>
+              <div class="stat-box">
+                <div class="stat-box-label">Margin Achieved</div>
+                <div id="slider-margin-pct" class="stat-box-value" style="color:var(--t1);">—</div>
+              </div>
             </div>
-            <p id="val-prem" class="font-display font-bold text-xl text-white mt-0.5">—</p>
-            <p class="text-xs mt-1" style="color:var(--text-3)">+15% Buffer</p>
           </div>
-        </div>
 
-        <!-- Formula pills -->
-        <div class="formula-pill">
-          <span style="color:#60a5fa; font-weight:600;">Floor</span> = (Cost+Ads+Ship) ÷ (1−Tax) &nbsp;|&nbsp;
-          <span style="color:#60a5fa; font-weight:600;">Target</span> = Total ÷ (1−Tax−Margin) &nbsp;|&nbsp;
-          <span style="color:#00e5a0; font-weight:600;">Premium</span> = Target × 1.15
-        </div>
-      </div>
-
-      <!-- ── Interactive Price Slider ── -->
-      <div class="glass p-5 fade-up fade-up-4" id="slider-section">
-        <div class="flex items-center justify-between mb-3">
-          <div class="flex items-center gap-2">
-            <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(255,179,0,0.1); border:1px solid rgba(255,179,0,0.25)">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#ffb300" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+          <!-- Profitability Curve -->
+          <div class="card fu fu4" style="padding:1.25rem;">
+            <div class="sec-head">
+              <div class="sec-head-icon" style="background:rgba(0,214,143,0.1); border:1px solid rgba(0,214,143,0.2);">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
+              </div>
+              <span class="sec-head-title">Profitability Curve</span>
+              <span class="sec-head-badge" style="background:rgba(0,214,143,0.1); border:1px solid rgba(0,214,143,0.2); color:var(--green);">Sensitivity Analysis</span>
             </div>
-            <h2 class="font-display font-semibold text-base text-white">Price Explorer</h2>
+            <div class="chart-container">
+              <canvas id="profit-chart"></canvas>
+            </div>
+            <div class="chart-legend">
+              <div class="legend-item">
+                <div class="legend-line" style="background:var(--cyan);"></div>
+                Net Profit
+              </div>
+              <div class="legend-item">
+                <div class="legend-dash"></div>
+                Break-even
+              </div>
+            </div>
           </div>
-          <div class="text-right">
-            <p class="text-xs" style="color:var(--text-2)">Testing price</p>
-            <p id="slider-price-display" class="font-display font-bold text-base text-white">—</p>
+
+          <!-- YouTube CTA -->
+          <a href="https://www.youtube.com" target="_blank" class="yt-banner fu fu5">
+            <div class="yt-icon">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
+            </div>
+            <div style="flex:1; min-width:0;">
+              <p style="font-family:'Syne',sans-serif; font-weight:700; font-size:0.85rem; color:var(--t1);">Subscribe for AI Strategy Insights</p>
+              <p style="font-size:0.72rem; color:var(--t3); margin-top:0.15rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">Pricing, growth & global e-commerce AI</p>
+            </div>
+            <svg style="flex-shrink:0; color:#ef4444; opacity:0.7;" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </a>
+
+        </div><!-- /right col -->
+      </div><!-- /calc-grid -->
+    </div><!-- /calculator section -->
+
+    <!-- ══════════════ SETTINGS ══════════════ -->
+    <div id="section-settings" class="section">
+      <div style="max-width:760px; display:flex; flex-direction:column; gap:1.25rem;">
+
+        <!-- Global Defaults -->
+        <div class="card fu fu1" style="padding:1.5rem;">
+          <div class="sec-head">
+            <div class="sec-head-icon" style="background:rgba(56,189,248,0.1); border:1px solid rgba(56,189,248,0.2);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+            </div>
+            <span class="sec-head-title">Global Defaults</span>
           </div>
-        </div>
+          <p style="font-size:0.78rem; color:var(--t2); margin-bottom:1.25rem;">Saved to your profile and auto-loaded every session.</p>
 
-        <!-- Zone bar -->
-        <div class="slider-zones mb-3 rounded-full"></div>
-
-        <!-- Slider -->
-        <input id="price-slider" type="range" min="0" max="1000" step="0.01"
-          class="profit-slider mb-3 block"
-          oninput="onSliderChange(this.value)"
-          style="--pct:50%"/>
-
-        <!-- Range labels -->
-        <div class="flex justify-between text-xs mb-4" style="color:var(--text-3)">
-          <span id="slider-min-label">Floor</span>
-          <span id="slider-rec-label">Target</span>
-          <span id="slider-max-label">Premium</span>
-        </div>
-
-        <!-- Live profit from slider -->
-        <div class="grid grid-cols-2 gap-3">
-          <div class="rounded-xl p-3.5 text-center" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
-            <p class="text-xs mb-1" style="color:var(--text-2)">Net Profit</p>
-            <p id="slider-profit" class="font-display font-bold text-lg text-white">—</p>
-          </div>
-          <div class="rounded-xl p-3.5 text-center" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
-            <p class="text-xs mb-1" style="color:var(--text-2)">Margin Achieved</p>
-            <p id="slider-margin-pct" class="font-display font-bold text-lg text-white">—</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── Profitability Curve Chart ── -->
-      <div class="glass p-5 fade-up fade-up-5">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>
-          </div>
-          <h2 class="font-display font-semibold text-base text-white">Profitability Curve</h2>
-        </div>
-        <div class="chart-wrap">
-          <canvas id="profit-chart"></canvas>
-        </div>
-        <div class="flex items-center gap-4 mt-3 text-xs" style="color:var(--text-2)">
-          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 rounded" style="background:#2f88ff"></span>Net Profit</span>
-          <span class="flex items-center gap-1.5"><span class="inline-block w-3 h-0.5 rounded" style="background:rgba(255,77,109,0.6); border-top: 1px dashed #ff4d6d;"></span>Break-even</span>
-        </div>
-      </div>
-
-      <!-- YouTube CTA -->
-      <a href="https://www.youtube.com" target="_blank"
-        class="yt-cta flex items-center gap-3 p-4 cursor-pointer group fade-up">
-        <div class="w-11 h-11 bg-red-600 rounded-xl flex items-center justify-center flex-shrink-0 shadow-lg">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="white"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.5 12 3.5 12 3.5s-7.5 0-9.4.6A3 3 0 0 0 .5 6.2C0 8.1 0 12 0 12s0 3.9.5 5.8a3 3 0 0 0 2.1 2.1C4.5 20.5 12 20.5 12 20.5s7.5 0 9.4-.6a3 3 0 0 0 2.1-2.1C24 15.9 24 12 24 12s0-3.9-.5-5.8zM9.8 15.5V8.5l6.3 3.5-6.3 3.5z"/></svg>
-        </div>
-        <div class="flex-1 min-w-0">
-          <p class="text-sm font-semibold text-white">Subscribe for AI Strategy Insights</p>
-          <p class="text-xs mt-0.5 truncate" style="color:var(--text-3)">Pricing psychology, global growth & e-commerce AI</p>
-        </div>
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" class="flex-shrink-0 text-red-400 opacity-70 group-hover:opacity-100 transition-opacity"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-      </a>
-    </div>
-
-    <!-- ════════════ SETTINGS SECTION ════════════ -->
-    <div id="section-settings" class="section space-y-4">
-
-      <div class="glass p-5 fade-up fade-up-1">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(47,136,255,0.15); border:1px solid rgba(47,136,255,0.3)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
-          </div>
-          <h2 class="font-display font-semibold text-base text-white">Global Defaults</h2>
-        </div>
-        <p class="text-xs mb-5" style="color:var(--text-2)">Saved to your profile and auto-loaded every session.</p>
-
-        <div class="space-y-4">
-          <div>
-            <label class="field-label">Currency</label>
-            <select id="set-currency" class="neon-input-plain">
-              <option value="USD">USD — US Dollar ($)</option>
-              <option value="EUR">EUR — Euro (€)</option>
-              <option value="GBP">GBP — British Pound (£)</option>
-              <option value="JPY">JPY — Japanese Yen (¥)</option>
-              <option value="AUD">AUD — Australian Dollar (A$)</option>
-              <option value="CAD">CAD — Canadian Dollar (C$)</option>
-              <option value="CHF">CHF — Swiss Franc (Fr)</option>
-              <option value="CNY">CNY — Chinese Yuan (¥)</option>
-              <option value="BRL">BRL — Brazilian Real (R$)</option>
-              <option value="MXN">MXN — Mexican Peso ($)</option>
-            </select>
-          </div>
-          <div class="grid grid-cols-3 gap-3">
+          <div style="display:flex; flex-direction:column; gap:1rem;">
             <div>
-              <label class="field-label">Tax Rate %</label>
-              <input id="set-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="neon-input-plain text-center"/>
-              <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 10 = 10%</p>
+              <label class="lbl">Currency</label>
+              <select id="set-currency" class="field">
+                <option value="USD">USD — US Dollar ($)</option>
+                <option value="EUR">EUR — Euro (€)</option>
+                <option value="GBP">GBP — British Pound (£)</option>
+                <option value="JPY">JPY — Japanese Yen (¥)</option>
+                <option value="AUD">AUD — Australian Dollar (A$)</option>
+                <option value="CAD">CAD — Canadian Dollar (C$)</option>
+                <option value="CHF">CHF — Swiss Franc (Fr)</option>
+                <option value="CNY">CNY — Chinese Yuan (¥)</option>
+                <option value="BRL">BRL — Brazilian Real (R$)</option>
+                <option value="MXN">MXN — Mexican Peso ($)</option>
+              </select>
             </div>
+            <div class="settings-grid">
+              <div>
+                <label class="lbl">Tax Rate</label>
+                <div class="field-suffix">
+                  <input id="set-tax" type="number" min="0" max="99" step="0.1" placeholder="10" class="field"/>
+                  <span class="suffix-sym">%</span>
+                </div>
+                <p style="font-size:0.65rem; color:var(--t3); margin-top:0.3rem;">e.g. 10 = 10%</p>
+              </div>
+              <div>
+                <label class="lbl">Default Shipping</label>
+                <div class="field-prefix">
+                  <span class="prefix-sym">$</span>
+                  <input id="set-ship" type="number" min="0" step="0.01" placeholder="5.00" class="field"/>
+                </div>
+              </div>
+              <div>
+                <label class="lbl">Target Margin</label>
+                <div class="field-suffix">
+                  <input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="field"/>
+                  <span class="suffix-sym">%</span>
+                </div>
+                <p style="font-size:0.65rem; color:var(--t3); margin-top:0.3rem;">e.g. 30 = 30%</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="divider"></div>
+
+          <button onclick="saveSettings()" class="btn-primary" style="max-width:240px;">
+            <svg id="save-spin" class="hidden spin" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+            <svg id="save-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+            <span id="save-text">Save Settings</span>
+          </button>
+        </div>
+
+        <!-- Account -->
+        <div class="card fu fu2" style="padding:1.5rem;">
+          <div class="sec-head">
+            <div class="sec-head-icon" style="background:rgba(0,214,143,0.1); border:1px solid rgba(0,214,143,0.2);">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+            </div>
+            <span class="sec-head-title">Account</span>
+          </div>
+          <div class="account-pill">
+            <div class="avatar"><span id="account-initial">?</span></div>
             <div>
-              <label class="field-label">Shipping</label>
-              <input id="set-ship" type="number" min="0" step="0.01" placeholder="5.00" class="neon-input-plain text-center"/>
-            </div>
-            <div>
-              <label class="field-label">Margin %</label>
-              <input id="set-margin" type="number" min="0" max="99" step="0.1" placeholder="30" class="neon-input-plain text-center"/>
-              <p class="text-xs mt-1" style="color:var(--text-3)">e.g. 30 = 30%</p>
+              <p id="set-email" style="font-size:0.88rem; font-weight:500; color:var(--t1); font-family:'Syne',sans-serif;"></p>
+              <p style="font-size:0.7rem; color:var(--t3); margin-top:0.15rem;">Active account</p>
             </div>
           </div>
+          <button onclick="signOut()" class="btn-ghost" style="gap:0.5rem;">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
+            Sign Out
+          </button>
         </div>
 
-        <button onclick="saveSettings()" class="btn-primary mt-5 flex items-center justify-center gap-2">
-          <svg id="save-spin" class="hidden spin" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-          <svg id="save-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
-          <span id="save-text">Save Settings</span>
-        </button>
-      </div>
+        <!-- Math explainer -->
+        <div class="card fu fu3" style="padding:1.5rem;">
+          <div class="sec-head">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--cyan)" stroke-width="2.5" stroke-linecap="round" style="flex-shrink:0;"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+            <span class="sec-head-title">Range Math Explained</span>
+          </div>
+          <div class="explainer-row">
+            <p><strong style="color:var(--red);">Net Profit P(s)</strong> = s·(1−r)·(1−t) − c − a<br>
+            Where s=price, r=refund rate, t=tax, c=cost, a=ad spend</p>
+            <p><strong style="color:var(--red);">Floor</strong> — Break-even limit (margin → 0): (c+a) ÷ [(1−r)·(1−t)]. Below this you lose money.</p>
+            <p><strong style="color:var(--cyan);">Target</strong> — Margin baked in: (c+a) ÷ [(1−r)·(1−t) − m]. Achieves exactly your target margin.</p>
+            <p><strong style="color:var(--green);">Premium</strong> — Target × 1.15. Absorbs refunds, chargebacks & unexpected costs with a 15% buffer.</p>
+          </div>
+        </div>
 
-      <!-- Account card -->
-      <div class="glass p-5 fade-up fade-up-2">
-        <div class="flex items-center gap-2 mb-4">
-          <div class="w-7 h-7 rounded-lg flex items-center justify-center" style="background:rgba(0,229,160,0.1); border:1px solid rgba(0,229,160,0.25)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#00e5a0" stroke-width="2.5" stroke-linecap="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-          </div>
-          <h2 class="font-display font-semibold text-base text-white">Account</h2>
-        </div>
-        <div class="flex items-center gap-3 mb-4 p-3 rounded-xl" style="background:rgba(5,11,28,0.6); border:1px solid var(--border)">
-          <div class="w-9 h-9 rounded-full flex items-center justify-center font-display font-bold text-sm" style="background:linear-gradient(135deg,#1a5fcc,#2f88ff)">
-            <span id="account-initial">?</span>
-          </div>
-          <div>
-            <p id="set-email" class="text-sm font-medium text-white"></p>
-            <p class="text-xs" style="color:var(--text-3)">Active account</p>
-          </div>
-        </div>
-        <button onclick="signOut()" class="btn-ghost w-full flex items-center justify-center gap-2">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg>
-          Sign Out
-        </button>
       </div>
-
-      <!-- Math explainer -->
-      <div class="glass p-5 fade-up fade-up-3">
-        <div class="flex items-center gap-2 mb-3">
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#60a5fa" stroke-width="2.5" stroke-linecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <h3 class="font-display font-semibold text-sm text-white">Range Math Explained</h3>
-        </div>
-        <div class="space-y-2 text-xs leading-relaxed" style="color:var(--text-2)">
-          <p><span class="text-red-400 font-semibold">Floor Price</span> — The break-even limit. lim(margin→0): (Cost+Ads+Ship) ÷ (1−Tax). You cannot go below this or you lose money.</p>
-          <p><span style="color:#60a5fa" class="font-semibold">Recommended Price</span> — Your target margin baked in: Total ÷ (1−Tax−Margin).</p>
-          <p><span style="color:#00e5a0" class="font-semibold">Premium Price</span> — Recommended × 1.15 to absorb refunds, chargebacks & unexpected costs.</p>
-        </div>
-      </div>
-    </div>
+    </div><!-- /settings section -->
 
   </main>
-</div>
+</div><!-- /app-screen -->
 
-<!-- ═══════════════════════════════════════════
-     JAVASCRIPT
-═══════════════════════════════════════════ -->
+
+<!-- ═══════════════════════════════════════════════════════
+     JAVASCRIPT — Zero-Null Architecture
+═══════════════════════════════════════════════════════ -->
 <script>
-/**
- * ╔══════════════════════════════════════════════════════════════╗
- * ║           RIBHI  —  Profit Analytics Core Logic              ║
- * ║  Zero-Null · Guard-Claused · Single-Pass calculateAll()      ║
- * ╚══════════════════════════════════════════════════════════════╝
- *
- * Net Profit Function
- * ───────────────────
- *   Net Revenue  = s · (1 − r)          [revenue net of refunds]
- *   Tax Amount   = Net Revenue · t
- *   P(s)         = s(1−r)(1−t) − c − a  [net profit at price s]
- *
- * Where:
- *   s  = sale price         (slider / manual input)
- *   c  = product cost
- *   a  = ad spend / CPA
- *   r  = refund rate        (0–1 fraction)
- *   t  = tax rate           (0–1 fraction)
- *   m  = target margin rate (0–1 fraction)
- *
- * Price Anchors
- * ─────────────
- *   Floor  = (c + a) / [(1−r)(1−t)]         → P = 0  (break-even)
- *   Target = (c + a) / [(1−r)(1−t) − m]     → P/s = m
- *   Premium = Target × 1.15
- */
-
-/* ─────────────────────────────────────────────────────────────────
-   0.  SUPABASE CLIENT (initialised once, never re-created)
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   0. SUPABASE
+───────────────────────────────────────────────────────── */
 const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
-
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
+/* ─────────────────────────────────────────────────────────
+   1. GLOBAL STATE — single source of truth, never null
+───────────────────────────────────────────────────────── */
+const SYMBOLS = { USD:'$',EUR:'€',GBP:'£',JPY:'¥',AUD:'A$',CAD:'C$',CHF:'Fr',CNY:'¥',BRL:'R$',MXN:'$' };
 
-/* ─────────────────────────────────────────────────────────────────
-   1.  GLOBAL APP STATE  — single source of truth, never null
-───────────────────────────────────────────────────────────────── */
 const appState = {
-  // Auth
-  user: null,
-
-  // Profile / settings (safe defaults until Supabase responds)
+  user:            null,
   currency:        'USD',
-  defaultTax:      0.00,   // fraction  e.g. 0.20 = 20 %
-  defaultMargin:   0.20,   // fraction
-  defaultShipping: 0.00,
-  country:         '',
-
-  // Live calculator inputs  (mirrored from DOM on every keystroke)
-  inputs: {
-    cost:       0,
-    ads:        0,
-    tax:        0,
-    shipping:   0,
-    margin:     0,
-    refundRate: 0,          // NEW — fraction 0–1
-  },
-
-  // Computed anchors (populated by calculateAll)
-  anchors: {
-    floor:     0,
-    target:    0,
-    premium:   0,
-    totalCost: 0,
-  },
-
-  // Chart.js instance — starts null, set inside initChart()
-  chart: null,
+  defaultTax:      0,
+  defaultMargin:   0.20,
+  defaultShipping: 0,
+  inputs: { cost:0, ads:0, tax:0, shipping:0, margin:0.20, refundRate:0 },
+  anchors: { floor:0, target:0, premium:0, totalCost:0 },
+  chart: null,            // ← set by initChart(), never touched before
 };
 
-/* ─────────────────────────────────────────────────────────────────
-   2.  CURRENCY SYMBOLS
-───────────────────────────────────────────────────────────────── */
-const SYMBOLS = {
-  USD:'$', EUR:'€', GBP:'£', JPY:'¥',
-  AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥',
-  BRL:'R$', MXN:'$',
-};
 const sym = () => SYMBOLS[appState.currency] || '$';
 
+/* ─────────────────────────────────────────────────────────
+   2. DOM HELPERS
+───────────────────────────────────────────────────────── */
+const g        = id => document.getElementById(id);
+const setText  = (id,v) => { const e=g(id); if(e) e.textContent=v; };
+const setValue = (id,v) => { const e=g(id); if(e) e.value=v; };
 
-/* ─────────────────────────────────────────────────────────────────
-   3.  MATH ENGINE
-   All pure functions — no DOM reads, no side-effects.
-───────────────────────────────────────────────────────────────── */
+function animateCard(id, newVal) {
+  const el = g(id);
+  if (!el || el.textContent === newVal) return;
+  el.textContent = newVal;
+  const card = el.closest('.p-card');
+  if (card) {
+    card.classList.remove('pop');
+    void card.offsetWidth;
+    card.classList.add('pop');
+  }
+}
+
+/* ─────────────────────────────────────────────────────────
+   3. MATH ENGINE — pure functions, zero DOM access
+───────────────────────────────────────────────────────── */
 
 /**
- * Compute net profit at a given sale price.
- * @param {number} s   - sale price
- * @param {number} c   - product cost
- * @param {number} a   - ad spend / CPA
- * @param {number} r   - refund rate   (fraction 0–1)
- * @param {number} t   - tax rate      (fraction 0–1)
- * @returns {number}
+ * P(s) = s·(1−r)·(1−t) − c − a
  */
 function netProfit(s, c, a, r, t) {
   return s * (1 - r) * (1 - t) - c - a;
 }
 
-/**
- * Compute net margin % at a given sale price.
- */
 function netMarginPct(s, c, a, r, t) {
   if (s <= 0) return 0;
   return (netProfit(s, c, a, r, t) / s) * 100;
 }
 
 /**
- * Compute the three price anchors.
- * Returns null when inputs produce a mathematically invalid result.
- *
- * @param {number} c   - product cost
- * @param {number} a   - ad spend / CPA
- * @param {number} r   - refund rate   (0–1)
- * @param {number} t   - tax rate      (0–1)
- * @param {number} m   - target margin (0–1)
- * @returns {{ floor:number, target:number, premium:number, totalCost:number } | null}
+ * Compute three price anchors.
+ * Returns null when inputs are mathematically invalid.
  */
 function computeAnchors(c, a, r, t, m) {
-  const totalCost  = c + a;                 // fixed cost basis
-  const netFactor  = (1 - r) * (1 - t);    // effective revenue factor
+  const totalCost = c + a;
+  const netFactor = (1 - r) * (1 - t);
 
-  // Guard: degenerate inputs
-  if (netFactor <= 0 || netFactor > 1)  return null;
-  if (m < 0 || m >= netFactor)          return null;  // margin can't exceed net factor
+  if (netFactor <= 0 || netFactor > 1) return null;
+  if (m < 0 || m >= netFactor)         return null;
 
-  const divFloor  = netFactor;             // floor  divisor
-  const divTarget = netFactor - m;         // target divisor  (margin baked in)
+  const divFloor  = netFactor;
+  const divTarget = netFactor - m;
 
   if (divFloor  <= 0) return null;
   if (divTarget <= 0) return null;
 
-  const floor   = totalCost / divFloor;
-  const target  = totalCost / divTarget;
-  const premium = target * 1.15;
-
-  return { floor, target, premium, totalCost };
+  return {
+    floor:     totalCost / divFloor,
+    target:    totalCost / divTarget,
+    premium:   (totalCost / divTarget) * 1.15,
+    totalCost,
+  };
 }
 
 /**
- * Generate sensitivity-analysis data for the profit chart.
- * Returns parallel arrays: { labels, profitData, breakEvenLine }
- *
- * @param {object} anchors  - result of computeAnchors()
- * @param {number} c, a, r, t
- * @param {number} steps    - number of price steps (default 50)
+ * Build sensitivity analysis data for the chart.
  */
 function buildChartData(anchors, c, a, r, t, steps = 50) {
   const { floor, premium } = anchors;
-
   const priceMin = Math.max(0, floor * 0.5);
   const priceMax = premium * 1.4;
-  const stepSize = (priceMax - priceMin) / steps;
+  if (priceMax <= priceMin) return { labels:[], profitData:[], breakEvenLine:[] };
 
-  const labels       = [];
-  const profitData   = [];
-  const breakEvenLine = [];
+  const stepSize = (priceMax - priceMin) / steps;
+  const labels = [], profitData = [], breakEvenLine = [];
 
   for (let i = 0; i <= steps; i++) {
     const price = priceMin + i * stepSize;
-    const p     = netProfit(price, c, a, r, t);
-
     labels.push(`${sym()}${price.toFixed(2)}`);
-    profitData.push(parseFloat(p.toFixed(4)));
+    profitData.push(parseFloat(netProfit(price, c, a, r, t).toFixed(4)));
     breakEvenLine.push(0);
   }
 
   return { labels, profitData, breakEvenLine };
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   4.  CHART  — created ONCE with empty skeleton, then updated
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   4. CHART — created ONCE with empty skeleton
+───────────────────────────────────────────────────────── */
 function initChart() {
-  const canvas = document.getElementById('profit-chart');
-  if (!canvas) return;                        // DOM guard
+  const canvas = g('profit-chart');
+  if (!canvas) return;
 
   const ctx = canvas.getContext('2d');
 
   appState.chart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: [],                             // empty — populated by updateChart()
+      labels: [],
       datasets: [
         {
-          label:           'Net Profit',
-          data:            [],
-          borderColor:     '#2f88ff',
-          backgroundColor: buildGradient,     // lazy gradient factory
-          fill:            true,
-          tension:         0.42,
-          pointRadius:     0,
-          borderWidth:     2.5,
+          label: 'Net Profit',
+          data:  [],
+          borderColor: '#38bdf8',
+          backgroundColor: (context) => {
+            const chart = context.chart;
+            const { ctx: c2, chartArea } = chart;
+            if (!chartArea) return 'rgba(56,189,248,0.1)';
+            const g2 = c2.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g2.addColorStop(0, 'rgba(56,189,248,0.22)');
+            g2.addColorStop(1, 'rgba(56,189,248,0.00)');
+            return g2;
+          },
+          fill: true, tension: 0.42,
+          pointRadius: 0, borderWidth: 2,
         },
         {
-          label:           'Break-even',
-          data:            [],
-          borderColor:     'rgba(255,77,109,0.6)',
-          borderDash:      [5, 4],
-          fill:            false,
-          pointRadius:     0,
-          borderWidth:     1.5,
-          tension:         0,
+          label: 'Break-even',
+          data:  [],
+          borderColor: 'rgba(245,71,107,0.55)',
+          borderDash: [5,4], fill: false,
+          pointRadius: 0, borderWidth: 1.5, tension: 0,
         },
       ],
     },
     options: {
-      responsive:          true,
-      maintainAspectRatio: false,
-      interaction: { mode: 'index', intersect: false },
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode:'index', intersect:false },
       plugins: {
         legend: { display: false },
         tooltip: {
-          backgroundColor: 'rgba(7,14,31,0.92)',
-          borderColor:     'rgba(47,136,255,0.3)',
-          borderWidth:     1,
-          titleColor:      '#93c5fd',
-          bodyColor:       '#e8edf5',
-          padding:         10,
+          backgroundColor: 'rgba(8,12,20,0.95)',
+          borderColor: 'rgba(56,189,248,0.25)',
+          borderWidth: 1,
+          titleColor: '#38bdf8',
+          bodyColor: '#e2eaf6',
+          padding: 10,
+          titleFont: { family:'DM Mono', size:11 },
+          bodyFont:  { family:'DM Mono', size:11 },
           callbacks: {
-            label: (ctx) => {
-              const s = sym();
-              return ` ${ctx.dataset.label}: ${s}${ctx.parsed.y.toFixed(2)}`;
-            },
+            label: ctx2 => ` ${ctx2.dataset.label}: ${sym()}${ctx2.parsed.y.toFixed(2)}`,
           },
         },
       },
       scales: {
         x: {
-          grid:  { color: 'rgba(56,139,253,0.06)' },
-          ticks: {
-            color:         '#3d5070',
-            font:          { size: 10 },
-            maxTicksLimit: 7,
-          },
+          grid:  { color:'rgba(56,189,248,0.05)' },
+          ticks: { color:'#2e3f5c', font:{ size:9, family:'DM Mono' }, maxTicksLimit:7 },
         },
         y: {
-          grid:  { color: 'rgba(56,139,253,0.06)' },
+          grid:  { color:'rgba(56,189,248,0.05)' },
           ticks: {
-            color:    '#3d5070',
-            font:     { size: 10 },
-            callback: (v) => `${sym()}${v.toFixed(0)}`,
+            color:'#2e3f5c', font:{ size:9, family:'DM Mono' },
+            callback: v => `${sym()}${v.toFixed(0)}`,
           },
         },
       },
-      animation: { duration: 350, easing: 'easeInOutQuart' },
+      animation: { duration:320, easing:'easeInOutQuart' },
     },
   });
 }
 
-/** Returns a canvas gradient; called lazily by Chart.js fill. */
-function buildGradient(context) {
-  const chart     = context.chart;
-  const { ctx, chartArea } = chart;
-  if (!chartArea) return 'rgba(47,136,255,0.15)';   // fallback before first render
-  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-  gradient.addColorStop(0, 'rgba(47,136,255,0.28)');
-  gradient.addColorStop(1, 'rgba(47,136,255,0.00)');
-  return gradient;
-}
-
 /**
- * Push new data into the existing chart.
- * GUARDED — never throws if chart is not ready.
+ * Push new data into existing chart.
+ * GUARDED — safe to call at any time.
  */
 function updateChart(chartData) {
-  // ── Guard clause ──────────────────────────────────────────────
-  if (!appState.chart)                       return;  // chart not initialised yet
-  if (!appState.chart.data)                  return;  // Chart.js not fully built
-  if (!Array.isArray(chartData?.labels))     return;  // bad data shape
+  if (!appState.chart)                       return;
+  if (!appState.chart.data)                  return;
+  if (!Array.isArray(chartData?.labels))     return;
   if (!Array.isArray(chartData?.profitData)) return;
+  if (chartData.labels.length === 0)         return;
 
-  appState.chart.data.labels                    = chartData.labels;
-  appState.chart.data.datasets[0].data          = chartData.profitData;
-  appState.chart.data.datasets[1].data          = chartData.breakEvenLine;
-  appState.chart.update();
+  appState.chart.data.labels               = chartData.labels;
+  appState.chart.data.datasets[0].data     = chartData.profitData;
+  appState.chart.data.datasets[1].data     = chartData.breakEvenLine;
+  appState.chart.update('active');
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   5.  SINGLE PASS  calculateAll()
-   Reads DOM → updates appState → updates UI + chart in one sweep.
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   5. SINGLE-PASS calculateAll()
+───────────────────────────────────────────────────────── */
 function calculateAll() {
-  // 5a. Hydrate inputs from DOM
+  // Read DOM → state
   const inp = appState.inputs;
-  inp.cost       = parseFloat(g('inp-cost').value)    || 0;
-  inp.ads        = parseFloat(g('inp-ads').value)     || 0;
-  inp.tax        = (parseFloat(g('inp-tax').value)    || 0) / 100;
-  inp.shipping   = parseFloat(g('inp-ship').value)    || 0;
-  inp.margin     = (parseFloat(g('inp-margin').value) || 0) / 100;
-  inp.refundRate = (parseFloat(g('inp-refund')?.value)|| 0) / 100;
+  inp.cost       = parseFloat(g('inp-cost')?.value)    || 0;
+  inp.ads        = parseFloat(g('inp-ads')?.value)     || 0;
+  inp.tax        = (parseFloat(g('inp-tax')?.value)    || 0) / 100;
+  inp.shipping   = parseFloat(g('inp-ship')?.value)    || 0;
+  inp.margin     = (parseFloat(g('inp-margin')?.value) || 0) / 100;
+  inp.refundRate = (parseFloat(g('inp-refund')?.value) || 0) / 100;
 
-  const { cost, ads, shipping, tax, margin, refundRate } = inp;
-  const c = cost + shipping;         // total fixed cost basis
-  const a = ads;
+  const c = inp.cost + inp.shipping;
+  const a = inp.ads;
+  const { tax, margin, refundRate } = inp;
 
-  // 5b. Math
+  // Compute anchors
   const anchors = computeAnchors(c, a, refundRate, tax, margin);
 
   if (!anchors) {
-    // Invalid inputs — show placeholders, clear chart gracefully
-    ['val-floor', 'val-rec', 'val-prem'].forEach(id => setText(id, '—'));
+    ['val-floor','val-rec','val-prem'].forEach(id => setText(id,'—'));
+    setText('slider-price-display','—');
+    setText('slider-profit','—');
+    setText('slider-margin-pct','—');
+    // Clear chart gracefully
     if (appState.chart?.data) {
-      appState.chart.data.labels            = [];
-      appState.chart.data.datasets[0].data  = [];
-      appState.chart.data.datasets[1].data  = [];
+      appState.chart.data.labels = [];
+      appState.chart.data.datasets[0].data = [];
+      appState.chart.data.datasets[1].data = [];
       appState.chart.update();
     }
     return;
   }
 
   appState.anchors = anchors;
-  const { floor, target, premium, totalCost } = anchors;
+  const { floor, target, premium } = anchors;
   const s = sym();
 
-  // 5c. Animate price cards
-  animateValue('val-floor', `${s}${floor.toFixed(2)}`);
-  animateValue('val-rec',   `${s}${target.toFixed(2)}`);
-  animateValue('val-prem',  `${s}${premium.toFixed(2)}`);
+  // Update price cards with animation
+  animateCard('val-floor', `${s}${floor.toFixed(2)}`);
+  animateCard('val-rec',   `${s}${target.toFixed(2)}`);
+  animateCard('val-prem',  `${s}${premium.toFixed(2)}`);
 
-  // 5d. Update slider
+  // Update slider
   refreshSlider(floor, target, premium);
 
-  // 5e. Update chart (guarded inside updateChart)
-  const chartData = buildChartData(anchors, c, a, refundRate, tax);
-  updateChart(chartData);
+  // Build and push chart data (guarded inside updateChart)
+  updateChart(buildChartData(anchors, c, a, refundRate, tax));
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   6.  SLIDER
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   6. SLIDER
+───────────────────────────────────────────────────────── */
 function refreshSlider(floor, target, premium) {
   const slider = g('price-slider');
   if (!slider) return;
 
-  const s       = sym();
-  const sliderMin = Math.max(0, floor * 0.7);
-  const sliderMax = premium * 1.3;
+  const s = sym();
+  const sMin = Math.max(0, floor * 0.7);
+  const sMax = premium * 1.3;
 
-  slider.min   = sliderMin.toFixed(2);
-  slider.max   = sliderMax.toFixed(2);
+  slider.min   = sMin.toFixed(2);
+  slider.max   = sMax.toFixed(2);
   slider.value = target.toFixed(2);
-  slider.style.setProperty('--pct', pct(target, sliderMin, sliderMax) + '%');
+
+  const pct = ((target - sMin) / (sMax - sMin) * 100).toFixed(2);
+  slider.style.setProperty('--pct', pct + '%');
 
   setText('slider-min-label', `${s}${floor.toFixed(0)}`);
   setText('slider-rec-label', `${s}${target.toFixed(0)}`);
@@ -1116,59 +1272,51 @@ function onSliderMove(rawVal) {
   const slider = g('price-slider');
   if (!slider) return;
 
-  const price = parseFloat(rawVal);
-  const min   = parseFloat(slider.min);
-  const max   = parseFloat(slider.max);
-  slider.style.setProperty('--pct', pct(price, min, max) + '%');
+  const price  = parseFloat(rawVal);
+  const min    = parseFloat(slider.min);
+  const max    = parseFloat(slider.max);
+  const range  = max - min;
 
-  const { inputs: { tax, refundRate }, anchors: { totalCost } } = appState;
-  const c = totalCost;
-  const a = 0;                // already baked into totalCost via calculateAll
+  if (range > 0) {
+    slider.style.setProperty('--pct', ((price - min) / range * 100).toFixed(2) + '%');
+  }
 
-  // Re-derive cost+ads from anchors to avoid double-count
-  const { cost, ads, shipping } = appState.inputs;
-  const fixedCost = cost + shipping + ads;
-
-  const profit    = netProfit(price, fixedCost, 0, refundRate, tax);
-  const marginPct = netMarginPct(price, fixedCost, 0, refundRate, tax);
+  const { cost, ads, shipping, refundRate, tax } = appState.inputs;
+  const fixedCost = cost + shipping;
+  const profit    = netProfit(price, fixedCost, ads, refundRate, tax);
+  const marginPct = netMarginPct(price, fixedCost, ads, refundRate, tax);
   const s         = sym();
 
-  setHTML('slider-price-display', `${s}${price.toFixed(2)}`);
+  setText('slider-price-display', `${s}${price.toFixed(2)}`);
 
   const profitEl = g('slider-profit');
   if (profitEl) {
     profitEl.textContent = `${s}${profit.toFixed(2)}`;
-    profitEl.style.color = profit >= 0 ? '#00e5a0' : '#ff4d6d';
+    profitEl.style.color = profit >= 0 ? 'var(--green)' : 'var(--red)';
   }
 
   const marginEl = g('slider-margin-pct');
   if (marginEl) {
     marginEl.textContent = `${marginPct.toFixed(1)}%`;
-    marginEl.style.color = marginPct > 0 ? '#00e5a0' : '#ff4d6d';
+    marginEl.style.color = marginPct > 0 ? 'var(--green)' : 'var(--red)';
   }
 }
 
-const pct = (val, min, max) =>
-  max === min ? 0 : (((val - min) / (max - min)) * 100).toFixed(2);
-
-
-/* ─────────────────────────────────────────────────────────────────
-   7.  AUTH
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   7. AUTH
+───────────────────────────────────────────────────────── */
 let authMode = 'login';
 
 function switchAuthTab(mode) {
   authMode = mode;
-  ['login', 'signup'].forEach(t => {
-    g(`atab-${t}`)?.classList.toggle('active', t === mode);
-  });
+  ['login','signup'].forEach(t => g(`atab-${t}`)?.classList.toggle('active', t === mode));
   setText('a-btn-text', mode === 'login' ? 'Sign In' : 'Create Account');
 }
 
 async function handleAuth() {
   const email = g('a-email')?.value.trim() || '';
   const pass  = g('a-pass')?.value         || '';
-  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
+  if (!email || !pass) { toast('Enter email and password','error'); return; }
 
   setAuthLoading(true);
   try {
@@ -1177,38 +1325,31 @@ async function handleAuth() {
       : await sb.auth.signUp({ email, password: pass });
 
     if (error) throw error;
-    if (authMode === 'signup' && !data?.session) {
-      toast('Check your email to confirm! ✉️', 'info');
-    } else {
-      toast('Welcome! 🚀', 'success');
-    }
-  } catch (e) {
-    toast(e.message || 'Auth failed', 'error');
+    if (authMode === 'signup' && !data?.session) toast('Check your email! ✉️','info');
+    else toast('Welcome! 🚀','success');
+  } catch(e) {
+    toast(e.message || 'Auth failed','error');
   } finally {
     setAuthLoading(false);
   }
 }
 
-function setAuthLoading(loading) {
-  g('a-spin')?.classList.toggle('hidden', !loading);
-  g('a-btn-text')?.classList.toggle('hidden', loading);
-  if (g('a-btn')) g('a-btn').disabled = loading;
+function setAuthLoading(l) {
+  g('a-spin')?.classList.toggle('hidden', !l);
+  g('a-btn-text')?.classList.toggle('hidden', l);
+  if (g('a-btn')) g('a-btn').disabled = l;
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   8.  BOOT & PROFILE
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   8. BOOT & PROFILE
+───────────────────────────────────────────────────────── */
 async function boot(user) {
   appState.user = user;
   g('auth-screen')?.classList.add('hidden');
   g('app-screen')?.classList.remove('hidden');
-
-  const initial = user.email[0].toUpperCase();
   setText('nav-email',        user.email);
   setText('set-email',        user.email);
-  setText('account-initial',  initial);
-
+  setText('account-initial',  user.email[0].toUpperCase());
   await loadProfile(user.id);
 }
 
@@ -1218,41 +1359,32 @@ function goToAuth() {
 }
 
 async function loadProfile(userId) {
-  const { data, error } = await sb
-    .from('profiles')
-    .select('*')
-    .eq('id', userId)
-    .single();
-
+  const { data, error } = await sb.from('profiles').select('*').eq('id', userId).single();
   if (error && error.code !== 'PGRST116') {
-    console.warn('[Ribhi] Profile fetch error:', error.message);
-    calculateAll();   // still run with defaults
+    console.warn('[Ribhi] Profile error:', error.message);
+    calculateAll();
     return;
   }
-
   if (data) applyProfile(data);
   else calculateAll();
 }
 
 function applyProfile(d) {
-  appState.currency        = d.currency        || 'USD';
-  appState.defaultTax      = d.default_tax     || 0;
-  appState.defaultMargin   = d.default_margin  || 0;
-  appState.defaultShipping = d.default_shipping|| 0;
-  appState.country         = d.country         || '';
+  appState.currency        = d.currency         || 'USD';
+  appState.defaultTax      = d.default_tax      || 0;
+  appState.defaultMargin   = d.default_margin   || 0;
+  appState.defaultShipping = d.default_shipping || 0;
 
   const taxPct    = +(appState.defaultTax    * 100).toFixed(4);
   const marginPct = +(appState.defaultMargin * 100).toFixed(4);
 
-  // Calculator tab
   setValue('inp-tax',    taxPct);
   setValue('inp-ship',   appState.defaultShipping);
   setValue('inp-margin', marginPct);
-
-  // Settings tab
   setValue('set-tax',    taxPct);
   setValue('set-ship',   appState.defaultShipping);
   setValue('set-margin', marginPct);
+
   const curEl = g('set-currency');
   if (curEl) curEl.value = appState.currency;
 
@@ -1260,41 +1392,34 @@ function applyProfile(d) {
   calculateAll();
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   9.  SETTINGS SAVE
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   9. SETTINGS SAVE
+───────────────────────────────────────────────────────── */
 async function saveSettings() {
-  const tax    = parseFloat(g('set-tax')?.value)      || 0;
-  const ship   = parseFloat(g('set-ship')?.value)     || 0;
-  const margin = parseFloat(g('set-margin')?.value)   || 0;
-  const cur    = g('set-currency')?.value             || 'USD';
+  const tax    = parseFloat(g('set-tax')?.value)    || 0;
+  const ship   = parseFloat(g('set-ship')?.value)   || 0;
+  const margin = parseFloat(g('set-margin')?.value) || 0;
+  const cur    = g('set-currency')?.value           || 'USD';
 
-  if (tax + margin >= 100) {
-    toast('Tax + Margin must be < 100 %', 'error');
-    return;
-  }
+  if (tax + margin >= 100) { toast('Tax + Margin must be < 100%','error'); return; }
 
   setSaveLoading(true);
-  const { error } = await sb.from('profiles').upsert(
-    {
-      id:               appState.user.id,
-      email:            appState.user.email,
-      default_tax:      tax    / 100,
-      default_shipping: ship,
-      default_margin:   margin / 100,
-      currency:         cur,
-      updated_at:       new Date().toISOString(),
-    },
-    { onConflict: 'id' }
-  );
+  const { error } = await sb.from('profiles').upsert({
+    id:               appState.user.id,
+    email:            appState.user.email,
+    default_tax:      tax    / 100,
+    default_shipping: ship,
+    default_margin:   margin / 100,
+    currency:         cur,
+    updated_at:       new Date().toISOString(),
+  }, { onConflict:'id' });
   setSaveLoading(false);
 
-  if (error) { toast(error.message, 'error'); return; }
+  if (error) { toast(error.message,'error'); return; }
 
-  appState.currency      = cur;
-  appState.defaultTax    = tax    / 100;
-  appState.defaultMargin = margin / 100;
+  appState.currency        = cur;
+  appState.defaultTax      = tax    / 100;
+  appState.defaultMargin   = margin / 100;
   appState.defaultShipping = ship;
 
   setValue('inp-tax',    tax);
@@ -1303,30 +1428,28 @@ async function saveSettings() {
 
   updateCurrencySymbols();
   calculateAll();
-  toast('Settings saved ✓', 'success');
+  toast('Settings saved ✓','success');
 }
 
 function setSaveLoading(l) {
   g('save-spin')?.classList.toggle('hidden', !l);
   g('save-icon')?.classList.toggle('hidden',  l);
-  setHTML('save-text', l ? 'Saving…' : 'Save Settings');
+  setText('save-text', l ? 'Saving…' : 'Save Settings');
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   10.  CURRENCY SYMBOLS
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   10. CURRENCY SYMBOLS
+───────────────────────────────────────────────────────── */
 function updateCurrencySymbols() {
   const s = sym();
-  ['sym-cost', 'sym-ads', 'sym-ship'].forEach(id => setText(id, s));
+  ['sym-cost','sym-ads','sym-ship'].forEach(id => setText(id, s));
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   11.  SECTION SWITCHING  &  SIGN-OUT
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   11. NAVIGATION
+───────────────────────────────────────────────────────── */
 function showSection(name) {
-  ['calculator', 'settings'].forEach(s => {
+  ['calculator','settings'].forEach(s => {
     g(`section-${s}`)?.classList.toggle('active', s === name);
     g(`ntab-${s}`)?.classList.toggle('active', s === name);
   });
@@ -1336,15 +1459,14 @@ async function signOut() {
   await sb.auth.signOut();
   appState.user = null;
   goToAuth();
-  toast('Signed out', 'info');
+  toast('Signed out','info');
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   12.  TOAST
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   12. TOAST
+───────────────────────────────────────────────────────── */
 let _toastTimer;
-function toast(msg, type = 'info') {
+function toast(msg, type='info') {
   const el = g('toast');
   if (!el) return;
   el.textContent = msg;
@@ -1353,47 +1475,24 @@ function toast(msg, type = 'info') {
   _toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
 }
 
-
-/* ─────────────────────────────────────────────────────────────────
-   13.  DOM HELPERS  (tiny, zero-overhead)
-───────────────────────────────────────────────────────────────── */
-const g        = (id) => document.getElementById(id);
-const setText  = (id, v) => { const el = g(id); if (el) el.textContent = v; };
-const setHTML  = (id, v) => { const el = g(id); if (el) el.innerHTML    = v; };
-const setValue = (id, v) => { const el = g(id); if (el) el.value        = v; };
-
-function animateValue(id, newVal) {
-  const el = g(id);
-  if (!el || el.textContent === newVal) return;
-  el.textContent = newVal;
-  const card = el.closest('.range-card');
-  if (card) {
-    card.classList.remove('pop');
-    void card.offsetWidth;          // force reflow to restart animation
-    card.classList.add('pop');
-  }
-}
-
-
-/* ─────────────────────────────────────────────────────────────────
-   14.  ENTRY POINT  — DOMContentLoaded
-   ORDER IS STRICT:
-     1.  initChart()          ← chart skeleton created first
-     2.  getSession()         ← async auth check
-     3.  onAuthStateChange()  ← reactive listener
-───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────
+   13. ENTRY POINT — strict init order
+   STEP 1: initChart()   ← creates chart skeleton FIRST
+   STEP 2: getSession()  ← checks existing session
+   STEP 3: onAuthStateChange() ← reactive listener
+───────────────────────────────────────────────────────── */
 window.addEventListener('DOMContentLoaded', async () => {
 
-  // ── Step 1: Chart skeleton (must precede any calculateAll call) ──
+  // ① Chart must exist before ANY calculateAll() call
   initChart();
 
-  // ── Step 2: Restore session if already logged in ─────────────────
+  // ② Restore existing session
   const { data: { session } } = await sb.auth.getSession();
   if (session?.user) {
     await boot(session.user);
   }
 
-  // ── Step 3: React to future auth state changes ───────────────────
+  // ③ React to future auth changes
   sb.auth.onAuthStateChange(async (event, session) => {
     if (session?.user && !appState.user) {
       await boot(session.user);
@@ -1402,9 +1501,9 @@ window.addEventListener('DOMContentLoaded', async () => {
       goToAuth();
     }
   });
+
 });
 </script>
 </body>
 </html>
-
 
