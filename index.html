@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
-  <title>ProfitPilot AI v2 — Dynamic Range Engine</title>
+  <title>grow v2 — Dynamic Range Engine</title>
 
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
@@ -756,352 +756,653 @@
      JAVASCRIPT
 ═══════════════════════════════════════════ -->
 <script>
-// ─────────────────────────────────────────────
-//  CONFIG  ← Replace with your Supabase values
-// ─────────────────────────────────────────────
+/**
+ * ╔══════════════════════════════════════════════════════════════╗
+ * ║           RIBHI  —  Profit Analytics Core Logic              ║
+ * ║  Zero-Null · Guard-Claused · Single-Pass calculateAll()      ║
+ * ╚══════════════════════════════════════════════════════════════╝
+ *
+ * Net Profit Function
+ * ───────────────────
+ *   Net Revenue  = s · (1 − r)          [revenue net of refunds]
+ *   Tax Amount   = Net Revenue · t
+ *   P(s)         = s(1−r)(1−t) − c − a  [net profit at price s]
+ *
+ * Where:
+ *   s  = sale price         (slider / manual input)
+ *   c  = product cost
+ *   a  = ad spend / CPA
+ *   r  = refund rate        (0–1 fraction)
+ *   t  = tax rate           (0–1 fraction)
+ *   m  = target margin rate (0–1 fraction)
+ *
+ * Price Anchors
+ * ─────────────
+ *   Floor  = (c + a) / [(1−r)(1−t)]         → P = 0  (break-even)
+ *   Target = (c + a) / [(1−r)(1−t) − m]     → P/s = m
+ *   Premium = Target × 1.15
+ */
+
+/* ─────────────────────────────────────────────────────────────────
+   0.  SUPABASE CLIENT (initialised once, never re-created)
+───────────────────────────────────────────────────────────────── */
 const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
 const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
 
-const { createClient } = supabase;
-const sb = createClient(SUPABASE_URL, SUPABASE_ANON);
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON);
 
-const SYMBOLS = { USD:'$', EUR:'€', GBP:'£', JPY:'¥', AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥', BRL:'R$', MXN:'$' };
-let currentUser = null;
-let currency = 'USD';
-let authMode = 'login';
 
-// Chart.js instance
-let profitChart = null;
+/* ─────────────────────────────────────────────────────────────────
+   1.  GLOBAL APP STATE  — single source of truth, never null
+───────────────────────────────────────────────────────────────── */
+const appState = {
+  // Auth
+  user: null,
 
-// Range state
-let rangeState = { floor: 0, rec: 0, prem: 0, totalCost: 0 };
+  // Profile / settings (safe defaults until Supabase responds)
+  currency:        'USD',
+  defaultTax:      0.00,   // fraction  e.g. 0.20 = 20 %
+  defaultMargin:   0.20,   // fraction
+  defaultShipping: 0.00,
+  country:         '',
 
-// ── Init ──────────────────────────────────────
-window.addEventListener('DOMContentLoaded', async () => {
-  const { data: { session } } = await sb.auth.getSession();
-  if (session?.user) { currentUser = session.user; await boot(); }
-  sb.auth.onAuthStateChange(async (_, session) => {
-    if (session?.user && !currentUser) { currentUser = session.user; await boot(); }
-    else if (!session) { currentUser = null; toAuth(); }
-  });
-  initChart();
-});
+  // Live calculator inputs  (mirrored from DOM on every keystroke)
+  inputs: {
+    cost:       0,
+    ads:        0,
+    tax:        0,
+    shipping:   0,
+    margin:     0,
+    refundRate: 0,          // NEW — fraction 0–1
+  },
 
-// ── Auth ─────────────────────────────────────
-function switchAuthTab(m) {
-  authMode = m;
-  ['login','signup'].forEach(t => {
-    const el = document.getElementById(`atab-${t}`);
-    el.classList.toggle('active', t === m);
-  });
-  document.getElementById('a-btn-text').textContent = m === 'login' ? 'Sign In' : 'Create Account';
+  // Computed anchors (populated by calculateAll)
+  anchors: {
+    floor:     0,
+    target:    0,
+    premium:   0,
+    totalCost: 0,
+  },
+
+  // Chart.js instance — starts null, set inside initChart()
+  chart: null,
+};
+
+/* ─────────────────────────────────────────────────────────────────
+   2.  CURRENCY SYMBOLS
+───────────────────────────────────────────────────────────────── */
+const SYMBOLS = {
+  USD:'$', EUR:'€', GBP:'£', JPY:'¥',
+  AUD:'A$', CAD:'C$', CHF:'Fr', CNY:'¥',
+  BRL:'R$', MXN:'$',
+};
+const sym = () => SYMBOLS[appState.currency] || '$';
+
+
+/* ─────────────────────────────────────────────────────────────────
+   3.  MATH ENGINE
+   All pure functions — no DOM reads, no side-effects.
+───────────────────────────────────────────────────────────────── */
+
+/**
+ * Compute net profit at a given sale price.
+ * @param {number} s   - sale price
+ * @param {number} c   - product cost
+ * @param {number} a   - ad spend / CPA
+ * @param {number} r   - refund rate   (fraction 0–1)
+ * @param {number} t   - tax rate      (fraction 0–1)
+ * @returns {number}
+ */
+function netProfit(s, c, a, r, t) {
+  return s * (1 - r) * (1 - t) - c - a;
 }
 
-async function handleAuth() {
-  const email = document.getElementById('a-email').value.trim();
-  const pass  = document.getElementById('a-pass').value;
-  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
-  setAuthLoad(true);
-  try {
-    const fn = authMode === 'login'
-      ? sb.auth.signInWithPassword({ email, password: pass })
-      : sb.auth.signUp({ email, password: pass });
-    const { error, data } = await fn;
-    if (error) throw error;
-    if (authMode === 'signup' && !data?.session) toast('Check your email to confirm!', 'info');
-    else toast('Welcome! 🚀', 'success');
-  } catch(e) { toast(e.message || 'Auth failed', 'error'); }
-  finally { setAuthLoad(false); }
-}
-function setAuthLoad(l) {
-  document.getElementById('a-spin').classList.toggle('hidden', !l);
-  document.getElementById('a-btn-text').classList.toggle('hidden', l);
-  document.getElementById('a-btn').disabled = l;
+/**
+ * Compute net margin % at a given sale price.
+ */
+function netMarginPct(s, c, a, r, t) {
+  if (s <= 0) return 0;
+  return (netProfit(s, c, a, r, t) / s) * 100;
 }
 
-// ── Boot ──────────────────────────────────────
-async function boot() {
-  document.getElementById('auth-screen').classList.add('hidden');
-  document.getElementById('app-screen').classList.remove('hidden');
-  document.getElementById('nav-email').textContent = currentUser.email;
-  document.getElementById('set-email').textContent = currentUser.email;
-  document.getElementById('account-initial').textContent = currentUser.email[0].toUpperCase();
-  await loadProfile();
-}
-function toAuth() {
-  document.getElementById('app-screen').classList.add('hidden');
-  document.getElementById('auth-screen').classList.remove('hidden');
-}
+/**
+ * Compute the three price anchors.
+ * Returns null when inputs produce a mathematically invalid result.
+ *
+ * @param {number} c   - product cost
+ * @param {number} a   - ad spend / CPA
+ * @param {number} r   - refund rate   (0–1)
+ * @param {number} t   - tax rate      (0–1)
+ * @param {number} m   - target margin (0–1)
+ * @returns {{ floor:number, target:number, premium:number, totalCost:number } | null}
+ */
+function computeAnchors(c, a, r, t, m) {
+  const totalCost  = c + a;                 // fixed cost basis
+  const netFactor  = (1 - r) * (1 - t);    // effective revenue factor
 
-// ── Load profile ──────────────────────────────
-async function loadProfile() {
-  const { data } = await sb.from('profiles').select('*').eq('id', currentUser.id).single();
-  if (data) applyProfile(data);
-}
+  // Guard: degenerate inputs
+  if (netFactor <= 0 || netFactor > 1)  return null;
+  if (m < 0 || m >= netFactor)          return null;  // margin can't exceed net factor
 
-function applyProfile(d) {
-  currency = d.currency || 'USD';
-  const tax    = +(d.default_tax    * 100).toFixed(4);
-  const margin = +(d.default_margin * 100).toFixed(4);
-  setVal('inp-tax',    tax);
-  setVal('inp-ship',   d.default_shipping);
-  setVal('inp-margin', margin);
-  setVal('set-tax',    tax);
-  setVal('set-ship',   d.default_shipping);
-  setVal('set-margin', margin);
-  document.getElementById('set-currency').value = currency;
-  updateSymbols();
-  calculate();
-}
-function setVal(id, v) { document.getElementById(id).value = v; }
+  const divFloor  = netFactor;             // floor  divisor
+  const divTarget = netFactor - m;         // target divisor  (margin baked in)
 
-// ── Save settings ──────────────────────────────
-async function saveSettings() {
-  const tax     = parseFloat(document.getElementById('set-tax').value)      || 0;
-  const ship    = parseFloat(document.getElementById('set-ship').value)      || 0;
-  const margin  = parseFloat(document.getElementById('set-margin').value)    || 0;
-  const cur     = document.getElementById('set-currency').value;
-  if (tax + margin >= 100) { toast('Tax + Margin must be < 100%', 'error'); return; }
-  setSaveLoad(true);
-  const { error } = await sb.from('profiles').upsert({
-    id: currentUser.id, email: currentUser.email,
-    default_tax: tax/100, default_shipping: ship, default_margin: margin/100,
-    currency: cur, updated_at: new Date().toISOString()
-  }, { onConflict: 'id' });
-  setSaveLoad(false);
-  if (error) { toast(error.message, 'error'); return; }
-  currency = cur;
-  setVal('inp-tax', tax); setVal('inp-ship', ship); setVal('inp-margin', margin);
-  updateSymbols(); calculate();
-  toast('Settings saved ✓', 'success');
-}
-function setSaveLoad(l) {
-  document.getElementById('save-spin').classList.toggle('hidden', !l);
-  document.getElementById('save-icon').classList.toggle('hidden', l);
-  document.getElementById('save-text').textContent = l ? 'Saving…' : 'Save Settings';
+  if (divFloor  <= 0) return null;
+  if (divTarget <= 0) return null;
+
+  const floor   = totalCost / divFloor;
+  const target  = totalCost / divTarget;
+  const premium = target * 1.15;
+
+  return { floor, target, premium, totalCost };
 }
 
-// ── Currency ──────────────────────────────────
-function updateSymbols() {
-  const s = SYMBOLS[currency] || '$';
-  ['sym-cost','sym-ads','sym-ship'].forEach(id => document.getElementById(id).textContent = s);
-}
+/**
+ * Generate sensitivity-analysis data for the profit chart.
+ * Returns parallel arrays: { labels, profitData, breakEvenLine }
+ *
+ * @param {object} anchors  - result of computeAnchors()
+ * @param {number} c, a, r, t
+ * @param {number} steps    - number of price steps (default 50)
+ */
+function buildChartData(anchors, c, a, r, t, steps = 50) {
+  const { floor, premium } = anchors;
 
-// ── Core Calculations ─────────────────────────
-// Floor  = (cost+ads+ship) / (1 - taxRate)               [margin→0]
-// Target = (cost+ads+ship) / (1 - taxRate - marginRate)
-// Premium= Target × 1.15
-function calculate() {
-  const cost   = parseFloat(document.getElementById('inp-cost').value)   || 0;
-  const ads    = parseFloat(document.getElementById('inp-ads').value)    || 0;
-  const tax    = (parseFloat(document.getElementById('inp-tax').value)   || 0) / 100;
-  const ship   = parseFloat(document.getElementById('inp-ship').value)   || 0;
-  const margin = (parseFloat(document.getElementById('inp-margin').value)|| 0) / 100;
+  const priceMin = Math.max(0, floor * 0.5);
+  const priceMax = premium * 1.4;
+  const stepSize = (priceMax - priceMin) / steps;
 
-  const total  = cost + ads + ship;
-  const divFloor  = 1 - tax;
-  const divTarget = 1 - tax - margin;
+  const labels       = [];
+  const profitData   = [];
+  const breakEvenLine = [];
 
-  const s = SYMBOLS[currency] || '$';
+  for (let i = 0; i <= steps; i++) {
+    const price = priceMin + i * stepSize;
+    const p     = netProfit(price, c, a, r, t);
 
-  if (divFloor <= 0 || divTarget <= 0 || divTarget >= 1.5) {
-    ['val-floor','val-rec','val-prem'].forEach(id => document.getElementById(id).textContent = '—');
-    return;
+    labels.push(`${sym()}${price.toFixed(2)}`);
+    profitData.push(parseFloat(p.toFixed(4)));
+    breakEvenLine.push(0);
   }
 
-  const floor = total / divFloor;
-  const rec   = total / divTarget;
-  const prem  = rec * 1.15;
-
-  rangeState = { floor, rec, prem, total, tax, margin };
-
-  animVal('val-floor', `${s}${floor.toFixed(2)}`);
-  animVal('val-rec',   `${s}${rec.toFixed(2)}`);
-  animVal('val-prem',  `${s}${prem.toFixed(2)}`);
-
-  // Update slider range
-  const slider = document.getElementById('price-slider');
-  const sliderMin = Math.max(0, floor * 0.7);
-  const sliderMax = prem * 1.3;
-  slider.min = sliderMin.toFixed(2);
-  slider.max = sliderMax.toFixed(2);
-  slider.value = rec.toFixed(2);
-  document.getElementById('slider-min-label').textContent = `${s}${floor.toFixed(0)}`;
-  document.getElementById('slider-rec-label').textContent = `${s}${rec.toFixed(0)}`;
-  document.getElementById('slider-max-label').textContent = `${s}${prem.toFixed(0)}`;
-  onSliderChange(rec, true);
-
-  updateChart(floor, rec, prem, total, tax);
+  return { labels, profitData, breakEvenLine };
 }
 
-function animVal(id, val) {
-  const el = document.getElementById(id);
-  if (el.textContent !== val) {
-    el.textContent = val;
-    el.closest('.range-card')?.classList.remove('pop');
-    void el.offsetWidth;
-    el.closest('.range-card')?.classList.add('pop');
-  }
-}
 
-// ── Slider ────────────────────────────────────
-function onSliderChange(rawVal, skipUpdate) {
-  const price  = parseFloat(rawVal);
-  const slider = document.getElementById('price-slider');
-  const min    = parseFloat(slider.min);
-  const max    = parseFloat(slider.max);
-  const pct    = ((price - min) / (max - min)) * 100;
-  slider.style.setProperty('--pct', pct.toFixed(1) + '%');
-
-  const s = SYMBOLS[currency] || '$';
-  const { total, tax } = rangeState;
-
-  // Net profit at this price
-  const revenue = price;
-  const taxAmt  = revenue * tax;
-  const net     = revenue - taxAmt - total;
-  const marginAchieved = revenue > 0 ? ((net / revenue) * 100) : 0;
-
-  document.getElementById('slider-price-display').textContent = `${s}${price.toFixed(2)}`;
-  document.getElementById('slider-profit').textContent = `${s}${net.toFixed(2)}`;
-
-  const mEl = document.getElementById('slider-margin-pct');
-  mEl.textContent = `${marginAchieved.toFixed(1)}%`;
-  mEl.style.color = marginAchieved > 0 ? '#00e5a0' : '#ff4d6d';
-
-  const profitEl = document.getElementById('slider-profit');
-  profitEl.style.color = net >= 0 ? '#00e5a0' : '#ff4d6d';
-
-  if (!skipUpdate) updateChartMarker(price);
-}
-
-// ── Chart ─────────────────────────────────────
+/* ─────────────────────────────────────────────────────────────────
+   4.  CHART  — created ONCE with empty skeleton, then updated
+───────────────────────────────────────────────────────────────── */
 function initChart() {
-  const ctx = document.getElementById('profit-chart').getContext('2d');
-  profitChart = new Chart(ctx, {
+  const canvas = document.getElementById('profit-chart');
+  if (!canvas) return;                        // DOM guard
+
+  const ctx = canvas.getContext('2d');
+
+  appState.chart = new Chart(ctx, {
     type: 'line',
     data: {
-      labels: [],
+      labels: [],                             // empty — populated by updateChart()
       datasets: [
         {
-          label: 'Net Profit',
-          data: [],
-          borderColor: '#2f88ff',
-          backgroundColor: (ctx) => {
-            const chart = ctx.chart;
-            const { ctx: c, chartArea } = chart;
-            if (!chartArea) return 'transparent';
-            const gradient = c.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            gradient.addColorStop(0, 'rgba(47,136,255,0.25)');
-            gradient.addColorStop(1, 'rgba(47,136,255,0.0)');
-            return gradient;
-          },
-          fill: true,
-          tension: 0.45,
-          pointRadius: 0,
-          borderWidth: 2.5,
+          label:           'Net Profit',
+          data:            [],
+          borderColor:     '#2f88ff',
+          backgroundColor: buildGradient,     // lazy gradient factory
+          fill:            true,
+          tension:         0.42,
+          pointRadius:     0,
+          borderWidth:     2.5,
         },
         {
-          label: 'Break-even',
-          data: [],
-          borderColor: 'rgba(255,77,109,0.55)',
-          borderDash: [5, 4],
-          fill: false,
-          pointRadius: 0,
-          borderWidth: 1.5,
-          tension: 0,
+          label:           'Break-even',
+          data:            [],
+          borderColor:     'rgba(255,77,109,0.6)',
+          borderDash:      [5, 4],
+          fill:            false,
+          pointRadius:     0,
+          borderWidth:     1.5,
+          tension:         0,
         },
-      ]
+      ],
     },
     options: {
-      responsive: true, maintainAspectRatio: false,
+      responsive:          true,
+      maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
       plugins: {
         legend: { display: false },
         tooltip: {
           backgroundColor: 'rgba(7,14,31,0.92)',
-          borderColor: 'rgba(47,136,255,0.3)',
-          borderWidth: 1,
-          titleColor: '#93c5fd',
-          bodyColor: '#e8edf5',
-          padding: 10,
+          borderColor:     'rgba(47,136,255,0.3)',
+          borderWidth:     1,
+          titleColor:      '#93c5fd',
+          bodyColor:       '#e8edf5',
+          padding:         10,
           callbacks: {
-            label: ctx => {
-              const s = SYMBOLS[currency] || '$';
+            label: (ctx) => {
+              const s = sym();
               return ` ${ctx.dataset.label}: ${s}${ctx.parsed.y.toFixed(2)}`;
-            }
-          }
-        }
+            },
+          },
+        },
       },
       scales: {
         x: {
-          grid: { color: 'rgba(56,139,253,0.06)' },
-          ticks: { color: '#3d5070', font: { size: 10, family: 'Space Grotesk' }, maxTicksLimit: 6 }
+          grid:  { color: 'rgba(56,139,253,0.06)' },
+          ticks: {
+            color:         '#3d5070',
+            font:          { size: 10 },
+            maxTicksLimit: 7,
+          },
         },
         y: {
-          grid: { color: 'rgba(56,139,253,0.06)' },
+          grid:  { color: 'rgba(56,139,253,0.06)' },
           ticks: {
-            color: '#3d5070', font: { size: 10, family: 'Space Grotesk' },
-            callback: v => { const s = SYMBOLS[currency]||'$'; return `${s}${v.toFixed(0)}`; }
-          }
-        }
+            color:    '#3d5070',
+            font:     { size: 10 },
+            callback: (v) => `${sym()}${v.toFixed(0)}`,
+          },
+        },
       },
-      animation: { duration: 400, easing: 'easeInOutQuart' }
-    }
+      animation: { duration: 350, easing: 'easeInOutQuart' },
+    },
   });
 }
 
-function updateChart(floor, rec, prem, total, tax) {
-  const steps = 40;
-  const priceMin = Math.max(0, floor * 0.5);
-  const priceMax = prem * 1.4;
-  const step = (priceMax - priceMin) / steps;
-  const s = SYMBOLS[currency] || '$';
+/** Returns a canvas gradient; called lazily by Chart.js fill. */
+function buildGradient(context) {
+  const chart     = context.chart;
+  const { ctx, chartArea } = chart;
+  if (!chartArea) return 'rgba(47,136,255,0.15)';   // fallback before first render
+  const gradient = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+  gradient.addColorStop(0, 'rgba(47,136,255,0.28)');
+  gradient.addColorStop(1, 'rgba(47,136,255,0.00)');
+  return gradient;
+}
 
-  const labels = [], profitData = [], beData = [];
-  for (let i = 0; i <= steps; i++) {
-    const p = priceMin + i * step;
-    const net = p - (p * tax) - total;
-    labels.push(`${s}${p.toFixed(1)}`);
-    profitData.push(parseFloat(net.toFixed(2)));
-    beData.push(0);
+/**
+ * Push new data into the existing chart.
+ * GUARDED — never throws if chart is not ready.
+ */
+function updateChart(chartData) {
+  // ── Guard clause ──────────────────────────────────────────────
+  if (!appState.chart)                       return;  // chart not initialised yet
+  if (!appState.chart.data)                  return;  // Chart.js not fully built
+  if (!Array.isArray(chartData?.labels))     return;  // bad data shape
+  if (!Array.isArray(chartData?.profitData)) return;
+
+  appState.chart.data.labels                    = chartData.labels;
+  appState.chart.data.datasets[0].data          = chartData.profitData;
+  appState.chart.data.datasets[1].data          = chartData.breakEvenLine;
+  appState.chart.update();
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   5.  SINGLE PASS  calculateAll()
+   Reads DOM → updates appState → updates UI + chart in one sweep.
+───────────────────────────────────────────────────────────────── */
+function calculateAll() {
+  // 5a. Hydrate inputs from DOM
+  const inp = appState.inputs;
+  inp.cost       = parseFloat(g('inp-cost').value)    || 0;
+  inp.ads        = parseFloat(g('inp-ads').value)     || 0;
+  inp.tax        = (parseFloat(g('inp-tax').value)    || 0) / 100;
+  inp.shipping   = parseFloat(g('inp-ship').value)    || 0;
+  inp.margin     = (parseFloat(g('inp-margin').value) || 0) / 100;
+  inp.refundRate = (parseFloat(g('inp-refund')?.value)|| 0) / 100;
+
+  const { cost, ads, shipping, tax, margin, refundRate } = inp;
+  const c = cost + shipping;         // total fixed cost basis
+  const a = ads;
+
+  // 5b. Math
+  const anchors = computeAnchors(c, a, refundRate, tax, margin);
+
+  if (!anchors) {
+    // Invalid inputs — show placeholders, clear chart gracefully
+    ['val-floor', 'val-rec', 'val-prem'].forEach(id => setText(id, '—'));
+    if (appState.chart?.data) {
+      appState.chart.data.labels            = [];
+      appState.chart.data.datasets[0].data  = [];
+      appState.chart.data.datasets[1].data  = [];
+      appState.chart.update();
+    }
+    return;
   }
 
-  profitChart.data.labels = labels;
-  profitChart.data.datasets[0].data = profitData;
-  profitChart.data.datasets[1].data = beData;
-  profitChart.update();
+  appState.anchors = anchors;
+  const { floor, target, premium, totalCost } = anchors;
+  const s = sym();
+
+  // 5c. Animate price cards
+  animateValue('val-floor', `${s}${floor.toFixed(2)}`);
+  animateValue('val-rec',   `${s}${target.toFixed(2)}`);
+  animateValue('val-prem',  `${s}${premium.toFixed(2)}`);
+
+  // 5d. Update slider
+  refreshSlider(floor, target, premium);
+
+  // 5e. Update chart (guarded inside updateChart)
+  const chartData = buildChartData(anchors, c, a, refundRate, tax);
+  updateChart(chartData);
 }
 
-function updateChartMarker(price) {
-  // future enhancement: add annotation marker
+
+/* ─────────────────────────────────────────────────────────────────
+   6.  SLIDER
+───────────────────────────────────────────────────────────────── */
+function refreshSlider(floor, target, premium) {
+  const slider = g('price-slider');
+  if (!slider) return;
+
+  const s       = sym();
+  const sliderMin = Math.max(0, floor * 0.7);
+  const sliderMax = premium * 1.3;
+
+  slider.min   = sliderMin.toFixed(2);
+  slider.max   = sliderMax.toFixed(2);
+  slider.value = target.toFixed(2);
+  slider.style.setProperty('--pct', pct(target, sliderMin, sliderMax) + '%');
+
+  setText('slider-min-label', `${s}${floor.toFixed(0)}`);
+  setText('slider-rec-label', `${s}${target.toFixed(0)}`);
+  setText('slider-max-label', `${s}${premium.toFixed(0)}`);
+
+  onSliderMove(target);
 }
 
-// ── Section switching ─────────────────────────
+function onSliderMove(rawVal) {
+  const slider = g('price-slider');
+  if (!slider) return;
+
+  const price = parseFloat(rawVal);
+  const min   = parseFloat(slider.min);
+  const max   = parseFloat(slider.max);
+  slider.style.setProperty('--pct', pct(price, min, max) + '%');
+
+  const { inputs: { tax, refundRate }, anchors: { totalCost } } = appState;
+  const c = totalCost;
+  const a = 0;                // already baked into totalCost via calculateAll
+
+  // Re-derive cost+ads from anchors to avoid double-count
+  const { cost, ads, shipping } = appState.inputs;
+  const fixedCost = cost + shipping + ads;
+
+  const profit    = netProfit(price, fixedCost, 0, refundRate, tax);
+  const marginPct = netMarginPct(price, fixedCost, 0, refundRate, tax);
+  const s         = sym();
+
+  setHTML('slider-price-display', `${s}${price.toFixed(2)}`);
+
+  const profitEl = g('slider-profit');
+  if (profitEl) {
+    profitEl.textContent = `${s}${profit.toFixed(2)}`;
+    profitEl.style.color = profit >= 0 ? '#00e5a0' : '#ff4d6d';
+  }
+
+  const marginEl = g('slider-margin-pct');
+  if (marginEl) {
+    marginEl.textContent = `${marginPct.toFixed(1)}%`;
+    marginEl.style.color = marginPct > 0 ? '#00e5a0' : '#ff4d6d';
+  }
+}
+
+const pct = (val, min, max) =>
+  max === min ? 0 : (((val - min) / (max - min)) * 100).toFixed(2);
+
+
+/* ─────────────────────────────────────────────────────────────────
+   7.  AUTH
+───────────────────────────────────────────────────────────────── */
+let authMode = 'login';
+
+function switchAuthTab(mode) {
+  authMode = mode;
+  ['login', 'signup'].forEach(t => {
+    g(`atab-${t}`)?.classList.toggle('active', t === mode);
+  });
+  setText('a-btn-text', mode === 'login' ? 'Sign In' : 'Create Account');
+}
+
+async function handleAuth() {
+  const email = g('a-email')?.value.trim() || '';
+  const pass  = g('a-pass')?.value         || '';
+  if (!email || !pass) { toast('Enter email and password', 'error'); return; }
+
+  setAuthLoading(true);
+  try {
+    const { error, data } = authMode === 'login'
+      ? await sb.auth.signInWithPassword({ email, password: pass })
+      : await sb.auth.signUp({ email, password: pass });
+
+    if (error) throw error;
+    if (authMode === 'signup' && !data?.session) {
+      toast('Check your email to confirm! ✉️', 'info');
+    } else {
+      toast('Welcome! 🚀', 'success');
+    }
+  } catch (e) {
+    toast(e.message || 'Auth failed', 'error');
+  } finally {
+    setAuthLoading(false);
+  }
+}
+
+function setAuthLoading(loading) {
+  g('a-spin')?.classList.toggle('hidden', !loading);
+  g('a-btn-text')?.classList.toggle('hidden', loading);
+  if (g('a-btn')) g('a-btn').disabled = loading;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   8.  BOOT & PROFILE
+───────────────────────────────────────────────────────────────── */
+async function boot(user) {
+  appState.user = user;
+  g('auth-screen')?.classList.add('hidden');
+  g('app-screen')?.classList.remove('hidden');
+
+  const initial = user.email[0].toUpperCase();
+  setText('nav-email',        user.email);
+  setText('set-email',        user.email);
+  setText('account-initial',  initial);
+
+  await loadProfile(user.id);
+}
+
+function goToAuth() {
+  g('app-screen')?.classList.add('hidden');
+  g('auth-screen')?.classList.remove('hidden');
+}
+
+async function loadProfile(userId) {
+  const { data, error } = await sb
+    .from('profiles')
+    .select('*')
+    .eq('id', userId)
+    .single();
+
+  if (error && error.code !== 'PGRST116') {
+    console.warn('[Ribhi] Profile fetch error:', error.message);
+    calculateAll();   // still run with defaults
+    return;
+  }
+
+  if (data) applyProfile(data);
+  else calculateAll();
+}
+
+function applyProfile(d) {
+  appState.currency        = d.currency        || 'USD';
+  appState.defaultTax      = d.default_tax     || 0;
+  appState.defaultMargin   = d.default_margin  || 0;
+  appState.defaultShipping = d.default_shipping|| 0;
+  appState.country         = d.country         || '';
+
+  const taxPct    = +(appState.defaultTax    * 100).toFixed(4);
+  const marginPct = +(appState.defaultMargin * 100).toFixed(4);
+
+  // Calculator tab
+  setValue('inp-tax',    taxPct);
+  setValue('inp-ship',   appState.defaultShipping);
+  setValue('inp-margin', marginPct);
+
+  // Settings tab
+  setValue('set-tax',    taxPct);
+  setValue('set-ship',   appState.defaultShipping);
+  setValue('set-margin', marginPct);
+  const curEl = g('set-currency');
+  if (curEl) curEl.value = appState.currency;
+
+  updateCurrencySymbols();
+  calculateAll();
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   9.  SETTINGS SAVE
+───────────────────────────────────────────────────────────────── */
+async function saveSettings() {
+  const tax    = parseFloat(g('set-tax')?.value)      || 0;
+  const ship   = parseFloat(g('set-ship')?.value)     || 0;
+  const margin = parseFloat(g('set-margin')?.value)   || 0;
+  const cur    = g('set-currency')?.value             || 'USD';
+
+  if (tax + margin >= 100) {
+    toast('Tax + Margin must be < 100 %', 'error');
+    return;
+  }
+
+  setSaveLoading(true);
+  const { error } = await sb.from('profiles').upsert(
+    {
+      id:               appState.user.id,
+      email:            appState.user.email,
+      default_tax:      tax    / 100,
+      default_shipping: ship,
+      default_margin:   margin / 100,
+      currency:         cur,
+      updated_at:       new Date().toISOString(),
+    },
+    { onConflict: 'id' }
+  );
+  setSaveLoading(false);
+
+  if (error) { toast(error.message, 'error'); return; }
+
+  appState.currency      = cur;
+  appState.defaultTax    = tax    / 100;
+  appState.defaultMargin = margin / 100;
+  appState.defaultShipping = ship;
+
+  setValue('inp-tax',    tax);
+  setValue('inp-ship',   ship);
+  setValue('inp-margin', margin);
+
+  updateCurrencySymbols();
+  calculateAll();
+  toast('Settings saved ✓', 'success');
+}
+
+function setSaveLoading(l) {
+  g('save-spin')?.classList.toggle('hidden', !l);
+  g('save-icon')?.classList.toggle('hidden',  l);
+  setHTML('save-text', l ? 'Saving…' : 'Save Settings');
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   10.  CURRENCY SYMBOLS
+───────────────────────────────────────────────────────────────── */
+function updateCurrencySymbols() {
+  const s = sym();
+  ['sym-cost', 'sym-ads', 'sym-ship'].forEach(id => setText(id, s));
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   11.  SECTION SWITCHING  &  SIGN-OUT
+───────────────────────────────────────────────────────────────── */
 function showSection(name) {
-  ['calculator','settings'].forEach(s => {
-    document.getElementById(`section-${s}`).classList.toggle('active', s === name);
-    document.getElementById(`ntab-${s}`).classList.toggle('active', s === name);
+  ['calculator', 'settings'].forEach(s => {
+    g(`section-${s}`)?.classList.toggle('active', s === name);
+    g(`ntab-${s}`)?.classList.toggle('active', s === name);
   });
 }
 
-// ── Sign out ──────────────────────────────────
 async function signOut() {
   await sb.auth.signOut();
-  currentUser = null;
-  toAuth();
+  appState.user = null;
+  goToAuth();
   toast('Signed out', 'info');
 }
 
-// ── Toast ─────────────────────────────────────
-let toastTimer;
+
+/* ─────────────────────────────────────────────────────────────────
+   12.  TOAST
+───────────────────────────────────────────────────────────────── */
+let _toastTimer;
 function toast(msg, type = 'info') {
-  const el = document.getElementById('toast');
+  const el = g('toast');
+  if (!el) return;
   el.textContent = msg;
-  el.className = `show ${type}`;
-  clearTimeout(toastTimer);
-  toastTimer = setTimeout(() => el.classList.remove('show'), 3200);
+  el.className   = `show ${type}`;
+  clearTimeout(_toastTimer);
+  _toastTimer = setTimeout(() => el.classList.remove('show'), 3400);
 }
+
+
+/* ─────────────────────────────────────────────────────────────────
+   13.  DOM HELPERS  (tiny, zero-overhead)
+───────────────────────────────────────────────────────────────── */
+const g        = (id) => document.getElementById(id);
+const setText  = (id, v) => { const el = g(id); if (el) el.textContent = v; };
+const setHTML  = (id, v) => { const el = g(id); if (el) el.innerHTML    = v; };
+const setValue = (id, v) => { const el = g(id); if (el) el.value        = v; };
+
+function animateValue(id, newVal) {
+  const el = g(id);
+  if (!el || el.textContent === newVal) return;
+  el.textContent = newVal;
+  const card = el.closest('.range-card');
+  if (card) {
+    card.classList.remove('pop');
+    void card.offsetWidth;          // force reflow to restart animation
+    card.classList.add('pop');
+  }
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   14.  ENTRY POINT  — DOMContentLoaded
+   ORDER IS STRICT:
+     1.  initChart()          ← chart skeleton created first
+     2.  getSession()         ← async auth check
+     3.  onAuthStateChange()  ← reactive listener
+───────────────────────────────────────────────────────────────── */
+window.addEventListener('DOMContentLoaded', async () => {
+
+  // ── Step 1: Chart skeleton (must precede any calculateAll call) ──
+  initChart();
+
+  // ── Step 2: Restore session if already logged in ─────────────────
+  const { data: { session } } = await sb.auth.getSession();
+  if (session?.user) {
+    await boot(session.user);
+  }
+
+  // ── Step 3: React to future auth state changes ───────────────────
+  sb.auth.onAuthStateChange(async (event, session) => {
+    if (session?.user && !appState.user) {
+      await boot(session.user);
+    } else if (!session && appState.user) {
+      appState.user = null;
+      goToAuth();
+    }
+  });
+});
 </script>
 </body>
 </html>
