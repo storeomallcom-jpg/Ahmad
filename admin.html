@@ -91,16 +91,17 @@
 </div>
 
 <script>
-    // ⚠️ قم بوضع بيانات مشروعك هنا
+    // بيانات الربط بقاعدة البيانات (تم تصحيح اسم المتغير)
     const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
-    const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
+    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
     
+    // إنشاء الاتصال
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
     async function initDashboard() {
         const { data: { user }, error } = await supabaseClient.auth.getUser();
 
-        // 1. التحقق من الهوية (أحمد فقط)
+        // التحقق من الهوية لتأمين لوحة التحكم
         if (error || !user || user.email !== 'ahmadzaoujal2009@gmail.com') {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('main-content').style.display = 'none';
@@ -109,7 +110,7 @@
 
         document.getElementById('admin-name').innerText = "مرحباً أحمد 👋";
 
-        // 2. جلب البيانات من جدول profiles
+        // جلب البيانات من جدول profiles
         const { data: profiles, error: dbError } = await supabaseClient
             .from('profiles')
             .select('*')
@@ -128,7 +129,7 @@
         document.getElementById('loading-state').style.display = 'none';
         document.getElementById('dashboard-data').style.display = 'block';
 
-        // حساب الإحصائيات
+        // حساب الإحصائيات الرياضية للمستخدمين
         document.getElementById('total-users').innerText = profiles.length;
         const totalUsage = profiles.reduce((sum, p) => sum + (p.usage_count || 0), 0);
         document.getElementById('total-usage').innerText = totalUsage;
@@ -136,7 +137,7 @@
         const activeCount = profiles.filter(p => (p.usage_count || 0) > 0).length;
         document.getElementById('active-users').innerText = activeCount;
 
-        // ملء الجدول
+        // ملء الجدول ديناميكياً
         const list = document.getElementById('users-list');
         list.innerHTML = '';
 
@@ -148,7 +149,7 @@
             list.innerHTML += `
                 <tr>
                     <td><strong>${p.full_name || 'مستخدم جديد'}</strong></td>
-                    <td>${p.email}</td>
+                    <td>${p.email || 'غير متوفر'}</td>
                     <td><span class="badge ${statusClass}">${statusText}</span></td>
                     <td>${date}</td>
                     <td>${p.usage_count || 0}</td>
@@ -157,9 +158,9 @@
         });
     }
 
+    // بدء تشغيل النظام عند تحميل الصفحة
     window.onload = initDashboard;
 </script>
 
 </body>
 </html>
-
