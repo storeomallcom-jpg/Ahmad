@@ -3,163 +3,249 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ProfitPilot Admin | لوحة التحكم</title>
+    <title>Ribhi Admin | لوحة التحكم العالمية</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Syne:wght@600&family=Inter:wght@400;600&display=swap" rel="stylesheet">
     <style>
         :root {
-            --primary: #3498db;
-            --danger: #e74c3c;
-            --success: #2ecc71;
-            --dark: #2c3e50;
-            --light: #ecf0f1;
+            --bg: #05070A;
+            --card-bg: #0C0F14;
+            --accent: #00D4B8; /* Teal */
+            --text-main: #FFFFFF;
+            --text-dim: #8A8F98;
+            --border: #1A1F26;
         }
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f8f9fa; margin: 0; padding: 20px; color: var(--dark); }
-        .container { max-width: 1100px; margin: 0 auto; background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.05); }
-        
-        header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--light); padding-bottom: 20px; margin-bottom: 30px; }
-        h1 { margin: 0; font-size: 24px; color: var(--primary); }
-        
-        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }
-        .stat-card { background: var(--primary); color: white; padding: 20px; border-radius: 12px; text-align: center; transition: transform 0.3s; }
-        .stat-card:hover { transform: translateY(-5px); }
-        .stat-card h3 { margin: 10px 0 0; font-size: 28px; }
-        .stat-card p { margin: 0; opacity: 0.8; font-size: 14px; }
 
-        .table-wrapper { overflow-x: auto; }
-        table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-        th, td { padding: 15px; text-align: right; border-bottom: 1px solid var(--light); }
-        th { background-color: #fafafa; font-weight: 600; color: #7f8c8d; }
-        tr:hover { background-color: #fdfdfd; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg);
+            color: var(--text-main);
+            margin: 0;
+            padding: 15px;
+            line-height: 1.6;
+        }
 
-        .badge { padding: 5px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
-        .verified { background: #d4edda; color: #155724; }
-        .not-verified { background: #f8d7da; color: #721c24; }
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
 
-        #error-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: white; z-index: 1000; justify-content: center; align-items: center; text-align: center; flex-direction: column; }
-        #error-overlay h2 { color: var(--danger); }
-        .loading { text-align: center; padding: 50px; font-size: 18px; color: var(--primary); }
+        header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid var(--border);
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            font-family: 'Syne', sans-serif;
+            font-size: 22px;
+            color: var(--accent);
+            margin: 0;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 20px;
+            border-radius: 16px;
+            text-align: center;
+        }
+
+        .stat-card h3 {
+            font-size: 28px;
+            margin: 10px 0 5px;
+            color: var(--accent);
+        }
+
+        .stat-card p {
+            font-size: 12px;
+            color: var(--text-dim);
+            margin: 0;
+            text-transform: uppercase;
+        }
+
+        /* Table Style */
+        .table-container {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            overflow-x: auto; /* مهم للهواتف */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: right;
+            min-width: 600px; /* يمنع الجدول من الانضغاط الصغير جداً */
+        }
+
+        th {
+            background: rgba(255, 255, 255, 0.02);
+            padding: 15px;
+            font-size: 13px;
+            color: var(--text-dim);
+            border-bottom: 1px solid var(--border);
+        }
+
+        td {
+            padding: 15px;
+            font-size: 14px;
+            border-bottom: 1px solid var(--border);
+        }
+
+        tr:last-child td { border-bottom: none; }
+
+        .currency-badge {
+            background: rgba(0, 212, 184, 0.1);
+            color: var(--accent);
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 12px;
+        }
+
+        /* Mobile Adjustments */
+        @media (max-width: 600px) {
+            h1 { font-size: 18px; }
+            .stat-card { padding: 15px; }
+            .stat-card h3 { font-size: 22px; }
+        }
+
+        /* States */
+        #error-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: var(--bg);
+            z-index: 100;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 50px;
+            color: var(--accent);
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
 
 <div id="error-overlay">
-    <h2 id="error-title">⛔ الوصول ممنوع</h2>
-    <p id="error-desc">هذه اللوحة مخصصة للمدير فقط.</p>
-    <a href="/" style="color: var(--primary);">العودة للرئيسية</a>
+    <h2 style="color: #FF4D4D;">⛔ وصول غير مصرح</h2>
+    <p id="error-msg" style="color: var(--text-dim);">هذه المنطقة مخصصة لأحمد فقط.</p>
+    <a href="/" style="color: var(--accent); text-decoration: none; margin-top: 20px; border: 1px solid var(--accent); padding: 8px 20px; border-radius: 8px;">العودة للموقع</a>
 </div>
 
 <div class="container" id="main-content">
     <header>
-        <h1>🚀 ProfitPilot Analytics</h1>
-        <div id="admin-name" style="font-size: 14px; font-weight: bold;">جاري التحقق...</div>
+        <h1>RIBHI<span>.ADMIN</span></h1>
+        <div id="admin-tag" style="font-size: 12px; color: var(--text-dim);">التحقق من الهوية...</div>
     </header>
 
-    <div id="loading-state" class="loading">جاري جلب بيانات المستخدمين...</div>
-
-    <div id="dashboard-data" style="display: none;">
-        <div class="stats-grid">
-            <div class="stat-card">
-                <p>إجمالي المستخدمين</p>
-                <h3 id="total-users">0</h3>
-            </div>
-            <div class="stat-card" style="background: var(--dark);">
-                <p>عمليات الحساب (Usage)</p>
-                <h3 id="total-usage">0</h3>
-            </div>
-            <div class="stat-card" style="background: var(--success);">
-                <p>المستخدمين النشطين</p>
-                <h3 id="active-users">0</h3>
-            </div>
+    <div class="stats-grid">
+        <div class="stat-card">
+            <p>إجمالي التجار</p>
+            <h3 id="count-users">0</h3>
         </div>
-
-        <div class="table-wrapper">
-            <table>
-                <thead>
-                    <tr>
-                        <th>المستخدم</th>
-                        <th>البريد الإلكتروني</th>
-                        <th>الحالة</th>
-                        <th>تاريخ الانضمام</th>
-                        <th>الاستخدام</th>
-                    </tr>
-                </thead>
-                <tbody id="users-list">
-                    </tbody>
-            </table>
+        <div class="stat-card">
+            <p>متوسط الضريبة</p>
+            <h3 id="avg-tax">0%</h3>
         </div>
+    </div>
+
+    <div class="table-container">
+        <div id="loading-spinner" class="loading">جاري مزامنة البيانات...</div>
+        <table id="data-table" style="display: none;">
+            <thead>
+                <tr>
+                    <th>التاجر (البريد)</th>
+                    <th>العملة</th>
+                    <th>الضريبة الافتراضية</th>
+                    <th>آخر تحديث</th>
+                </tr>
+            </thead>
+            <tbody id="user-rows"></tbody>
+        </table>
     </div>
 </div>
 
 <script>
-    // بيانات الربط بقاعدة البيانات (تم تصحيح اسم المتغير)
-    const SUPABASE_URL  = 'https://knjdwpmnjdugprpdvouk.supabase.co';
-    const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
+    // بياناتك الحالية
+    const SUPABASE_URL = 'https://knjdwpmnjdugprpdvouk.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtuamR3cG1uamR1Z3BycGR2b3VrIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzI3MTk4NzIsImV4cCI6MjA4ODI5NTg3Mn0.GFasEikuMc03IbTre3XxNDxUNi1WMXIbt-b2FQW7_Uc';
     
-    // إنشاء الاتصال
-    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+    const _supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-    async function initDashboard() {
-        const { data: { user }, error } = await supabaseClient.auth.getUser();
-
-        // التحقق من الهوية لتأمين لوحة التحكم
-        if (error || !user || user.email !== 'ahmadzaoujal2009@gmail.com') {
+    async function startAdmin() {
+        // 1. التأكد من أن المستخدم هو أحمد
+        const { data: { user } } = await _supabase.auth.getUser();
+        
+        if (!user || user.email !== 'ahmadzaoujal2009@gmail.com') {
             document.getElementById('error-overlay').style.display = 'flex';
             document.getElementById('main-content').style.display = 'none';
             return;
         }
 
-        document.getElementById('admin-name').innerText = "مرحباً أحمد 👋";
+        document.getElementById('admin-tag').innerText = "مرحباً أحمد الزوجال 👋";
 
-        // جلب البيانات من جدول profiles
-        const { data: profiles, error: dbError } = await supabaseClient
+        // 2. جلب البيانات (طلبنا فقط الأعمدة الموجودة في SQL الخاص بك)
+        const { data: profiles, error } = await _supabase
             .from('profiles')
-            .select('*')
-            .order('created_at', { ascending: false });
+            .select('email, currency, default_tax, updated_at')
+            .order('updated_at', { ascending: false });
 
-        if (dbError) {
-            console.error(dbError);
-            alert("فشل في جلب البيانات من قاعدة البيانات.");
+        if (error) {
+            console.error("Error fetching profiles:", error);
+            document.getElementById('loading-spinner').innerText = "فشل في جلب البيانات: " + error.message;
             return;
         }
 
-        renderData(profiles);
+        render(profiles);
     }
 
-    function renderData(profiles) {
-        document.getElementById('loading-state').style.display = 'none';
-        document.getElementById('dashboard-data').style.display = 'block';
+    function render(data) {
+        document.getElementById('loading-spinner').style.display = 'none';
+        document.getElementById('data-table').style.display = 'table';
 
-        // حساب الإحصائيات الرياضية للمستخدمين
-        document.getElementById('total-users').innerText = profiles.length;
-        const totalUsage = profiles.reduce((sum, p) => sum + (p.usage_count || 0), 0);
-        document.getElementById('total-usage').innerText = totalUsage;
+        // تحديث الأرقام
+        document.getElementById('count-users').innerText = data.length;
         
-        const activeCount = profiles.filter(p => (p.usage_count || 0) > 0).length;
-        document.getElementById('active-users').innerText = activeCount;
+        const avgTax = data.length > 0 
+            ? (data.reduce((sum, item) => sum + Number(item.default_tax), 0) / data.length) * 100 
+            : 0;
+        document.getElementById('avg-tax').innerText = avgTax.toFixed(1) + "%";
 
-        // ملء الجدول ديناميكياً
-        const list = document.getElementById('users-list');
-        list.innerHTML = '';
-
-        profiles.forEach(p => {
-            const date = new Date(p.created_at).toLocaleDateString('ar-MA');
-            const statusClass = p.is_verified ? 'verified' : 'not-verified';
-            const statusText = p.is_verified ? 'مؤكد' : 'منتظر';
-
-            list.innerHTML += `
-                <tr>
-                    <td><strong>${p.full_name || 'مستخدم جديد'}</strong></td>
-                    <td>${p.email || 'غير متوفر'}</td>
-                    <td><span class="badge ${statusClass}">${statusText}</span></td>
-                    <td>${date}</td>
-                    <td>${p.usage_count || 0}</td>
-                </tr>
-            `;
-        });
+        // ملء الجدول
+        const tbody = document.getElementById('user-rows');
+        tbody.innerHTML = data.map(profile => `
+            <tr>
+                <td style="font-weight: 600;">${profile.email}</td>
+                <td><span class="currency-badge">${profile.currency}</span></td>
+                <td>${(profile.default_tax * 100).toFixed(0)}%</td>
+                <td style="color: var(--text-dim); font-size: 12px;">
+                    ${new Date(profile.updated_at).toLocaleDateString('ar-MA')}
+                </td>
+            </tr>
+        `).join('');
     }
 
-    // بدء تشغيل النظام عند تحميل الصفحة
-    window.onload = initDashboard;
+    window.onload = startAdmin;
 </script>
 
 </body>
